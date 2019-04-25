@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.421
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LocationalDamageSKSEVR", "LocationalDamageSKSEVR.vcxproj", "{3B19D4C0-EC39-4C85-8CB4-15E8F5391FE0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		DebugVR|x64 = DebugVR|x64
+		Release|x64 = Release|x64
+		ReleaseVR|x64 = ReleaseVR|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3B19D4C0-EC39-4C85-8CB4-15E8F5391FE0}.Debug|x64.ActiveCfg = Debug|x64
+		{3B19D4C0-EC39-4C85-8CB4-15E8F5391FE0}.Debug|x64.Build.0 = Debug|x64
+		{3B19D4C0-EC39-4C85-8CB4-15E8F5391FE0}.DebugVR|x64.ActiveCfg = DebugVR|Win32
+		{3B19D4C0-EC39-4C85-8CB4-15E8F5391FE0}.DebugVR|x64.Build.0 = DebugVR|x64
+		{3B19D4C0-EC39-4C85-8CB4-15E8F5391FE0}.Release|x64.ActiveCfg = Release|x64
+		{3B19D4C0-EC39-4C85-8CB4-15E8F5391FE0}.Release|x64.Build.0 = Release|x64
+		{3B19D4C0-EC39-4C85-8CB4-15E8F5391FE0}.ReleaseVR|x64.ActiveCfg = ReleaseVR|x64
+		{3B19D4C0-EC39-4C85-8CB4-15E8F5391FE0}.ReleaseVR|x64.Build.0 = ReleaseVR|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0A4EBFCE-83C2-4988-AA9E-1E3AFE76F351}
+	EndGlobalSection
+EndGlobal

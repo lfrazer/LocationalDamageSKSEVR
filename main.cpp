@@ -1,15 +1,15 @@
-﻿#include <SKSE.h>
-#include <SKSE/PluginAPI.h>
-#include <SKSE/DebugLog.h>
-#include <SKSE/GameRTTI.h>
-#include <SKSE/GameForms.h>
-#include <SKSE/SafeWrite.h>
-#include <SKSE/HookUtil.h>
-#include <SKSE/GameReferences.h>
-#include <SKSE/GameObjects.h>
-#include <SKSE/GameExtraData.h>
-#include <SKSE/NiNodes.h>
-#include <SKSE/GameCamera.h>
+﻿//#include <SKSE.h>
+#include <skse64/PluginAPI.h>
+//#include <skse64/DebugLog.h>
+#include <skse64/GameRTTI.h>
+#include <skse64/GameForms.h>
+//#include <skse64/SafeWrite.h>
+//#include <skse64/HookUtil.h>
+#include <skse64/GameReferences.h>
+#include <skse64/GameObjects.h>
+#include <skse64/GameExtraData.h>
+#include <skse64/NiNodes.h>
+#include <skse64/GameCamera.h>
 
 #include <random>
 

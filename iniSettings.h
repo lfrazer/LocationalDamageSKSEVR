@@ -70,7 +70,7 @@ private:
 	std::string GetSkyrimPath();
 	std::string GetSksePluginPath();
 	bool IsFoundFile(const char* fileName);
-	std::vector<std::string> GetSectionKeys(LPCTSTR section_name, LPCTSTR ini_file_path);
+	std::vector<std::string> GetSectionKeys(const char* section_name, const char* ini_file_path);
 	std::vector<std::string> Split(const std::string &str, char sep);
 	void EraseIf(std::string &str, std::string sep);
 

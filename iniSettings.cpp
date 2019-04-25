@@ -1,5 +1,5 @@
-#include <SKSE/GameRTTI.h>
-#include <SKSE/DebugLog.h>
+#include <skse64/GameRTTI.h>
+//#include <common/DebugLog.h>
 
 #include <vector>
 #include <string>
@@ -84,8 +84,8 @@ std::string INIFile::GetSkyrimPath()
 {
 	std::string result;
 	char buf[MAX_PATH];
-	GetModuleFileName(nullptr, buf, MAX_PATH);
-	PathRemoveFileSpec(buf);
+	GetModuleFileNameA(nullptr, buf, MAX_PATH);
+	PathRemoveFileSpecA(buf);
 	result = buf;
 	result += "\\";
 	return result;
@@ -104,14 +104,14 @@ bool INIFile::IsFoundFile(const char* fileName)
 	return (ifs.fail()) ? false : true;
 }
 
-std::vector<std::string> INIFile::GetSectionKeys(LPCTSTR section_name, LPCTSTR ini_file_path)
+std::vector<std::string> INIFile::GetSectionKeys(const char* section_name, const char* ini_file_path)
 {
 	std::vector<std::string> result;
 	std::string file_path(ini_file_path);
 	if (IsFoundFile(ini_file_path))
 	{
 		TCHAR buf[32768] = {};
-		GetPrivateProfileSection(section_name, buf, sizeof(buf), ini_file_path);
+		GetPrivateProfileSectionA(section_name, buf, sizeof(buf), ini_file_path);
 		for (LPTSTR seek = buf; *seek != '\0'; seek++)
 		{
 			std::string str(seek);
