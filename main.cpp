@@ -404,7 +404,7 @@ static void Impact_Hook(UInt32 ecx, UInt32* stack)
 	if (base && base->GetSex())
 		gender = 1;
 
-	std::string pathString = std::string(race->behaviorGraph[gender].modelName);
+	std::string pathString = std::string(race->behaviorGraph[gender].name);
 	ini.ToLower(pathString);
 	static std::vector<Pair> defaultNodeNames = { { "NPC Head [Head]", 20 },{ "NPC R Calf [RClf]", 20 },{ "NPC L Calf [LClf]", 20 },{ "NPC R Forearm [RLar]", 20 },{ "NPC L Forearm [LLar]", 20 } };
 	std::vector<Pair> nodeNames = locationalNodeMap.count(pathString) >= 1 ? locationalNodeMap.at(pathString) : defaultNodeNames;
@@ -478,7 +478,7 @@ static void Impact_Hook(UInt32 ecx, UInt32* stack)
 
 				if (ini.DisplayNotification && (actor == g_thePlayer || caster_actor == g_thePlayer))
 				{
-					std::string str = ini.HeadMessageFront + std::string(actor->GetReferenceName()) + ini.HeadMessageBack;
+					std::string str = ini.HeadMessageFront + std::string(actor->GetFullName()) + ini.HeadMessageBack;
 					fnDebug_Notification(str.c_str(), false, true);
 				}
 
@@ -497,9 +497,9 @@ static void Impact_Hook(UInt32 ecx, UInt32* stack)
 				if (ini.DamageTypeFoot != 0)
 					ApplyLocationalDamage(actor, ini.DamageTypeFoot, GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_FootDamageMultiplier), caster_actor);
 
-				if (ini.DisplayNotification && (actor == g_thePlayer || caster_actor == g_thePlayer))
+				if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 				{
-					std::string str = ini.FootMessageFront + std::string(actor->GetReferenceName()) + ini.FootMessageBack;
+					std::string str = ini.FootMessageFront + std::string(actor->GetFullName()) + ini.FootMessageBack;
 					fnDebug_Notification(str.c_str(), false, true);
 				}
 
@@ -518,9 +518,9 @@ static void Impact_Hook(UInt32 ecx, UInt32* stack)
 				if (ini.DamageTypeArms != 0)
 					ApplyLocationalDamage(actor, ini.DamageTypeArms, GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_ArmsDamageMultiplier), caster_actor);
 
-				if (ini.DisplayNotification && (actor == g_thePlayer || caster_actor == g_thePlayer))
+				if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 				{
-					std::string str = ini.ArmsMessageFront + std::string(actor->GetReferenceName()) + ini.ArmsMessageBack;
+					std::string str = ini.ArmsMessageFront + std::string(actor->GetFullName()) + ini.ArmsMessageBack;
 					fnDebug_Notification(str.c_str(), false, true);
 				}
 
@@ -540,7 +540,7 @@ static void Impact_Hook(UInt32 ecx, UInt32* stack)
 
 				if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 				{
-					std::string str = ini.HeartMessageFront + std::string(actor->GetReferenceName()) + ini.HeartMessageBack;
+					std::string str = ini.HeartMessageFront + std::string(actor->GetFullName()) + ini.HeartMessageBack;
 					fnDebug_Notification(str.c_str(), false, true);
 				}
 
