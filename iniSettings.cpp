@@ -110,9 +110,9 @@ std::vector<std::string> INIFile::GetSectionKeys(const char* section_name, const
 	std::string file_path(ini_file_path);
 	if (IsFoundFile(ini_file_path))
 	{
-		TCHAR buf[32768] = {};
+		char buf[32768] = {};
 		GetPrivateProfileSectionA(section_name, buf, sizeof(buf), ini_file_path);
-		for (LPTSTR seek = buf; *seek != '\0'; seek++)
+		for (char* seek = buf; *seek != '\0'; seek++)
 		{
 			std::string str(seek);
 			result.push_back(str);
