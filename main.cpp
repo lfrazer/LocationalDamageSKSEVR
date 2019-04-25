@@ -185,21 +185,21 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 			switch (weapon->type())
 			{
 			case TESObjectWEAP::GameData::kType_HandToHandMelee:
-				damage = caster_actor->GetActorValueCurrent(35);
+				damage = caster_actor->actorValueOwner.GetCurrent(35); //caster_actor->GetActorValueCurrent(35);
 				break;
 			case TESObjectWEAP::GameData::kType_OneHandSword:
 			case TESObjectWEAP::GameData::kType_OneHandDagger:
 			case TESObjectWEAP::GameData::kType_OneHandAxe:
 			case TESObjectWEAP::GameData::kType_OneHandMace:
-				damage *= 1.0 + caster_actor->GetActorValueCurrent(6) * 0.5 / 100.0;
+				damage *= 1.0 + caster_actor->actorValueOwner.GetCurrent(6) * 0.5 / 100.0; //caster_actor->GetActorValueCurrent(6) * 0.5 / 100.0;
 				break;
 			case TESObjectWEAP::GameData::kType_TwoHandSword:
 			case TESObjectWEAP::GameData::kType_TwoHandAxe:
-				damage *= 1.0 + caster_actor->GetActorValueCurrent(7) * 0.5 / 100.0;
+				damage *= 1.0 + caster_actor->actorValueOwner.GetCurrentt(7) * 0.5 / 100.0;
 				break;
 			case TESObjectWEAP::GameData::kType_Bow:
 			case TESObjectWEAP::GameData::kType_CrossBow:
-				damage *= 1.0 + caster_actor->GetActorValueCurrent(8) * 0.5 / 100.0;
+				damage *= 1.0 + caster_actor->actorValueOwner.GetCurrent(8) * 0.5 / 100.0; 
 				break;
 			default:
 				break;
@@ -208,7 +208,7 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 	}
 	else if (caster_actor)
 	{
-		damage = caster_actor->GetActorValueCurrent(35);
+		damage = caster_actor->actorValueOwner.GetCurrent(35);
 	}
 
 	if (attackData)
@@ -385,22 +385,22 @@ static void Impact_Hook(UInt32 ecx, UInt32* stack)
 	if (!actor || actor->IsDead(true) || actor->IsInKillMove())
 		return;
 
-	TESRace* race = actor->GetRace();
+	TESRace* race = actor->race; //actor->GetRace();
 	if (!race)
 		return;
 
 	NiNode *node = actor->GetNiNode();
-	if (actor == g_thePlayer && g_thePlayer->loadedState)
+	if (actor == *g_thePlayer && (*g_thePlayer)->loadedState)
 	{
 		PlayerCamera* camera = PlayerCamera::GetSingleton();
-		node = camera && camera->IsFirstPerson() ? g_thePlayer->firstPersonSkeleton : g_thePlayer->loadedState->node;
+		node = (*g_thePlayer)->firstPersonSkeleton; //camera && camera->IsFirstPerson() ? g_thePlayer->firstPersonSkeleton : g_thePlayer->loadedState->node;
 	}
 
 	if (!node)
 		return;
 
 	int gender = 0;
-	TESNPC* base = actor->GetActorBase();
+	TESNPC* base = actor->baseForm; //actor->GetActorBase();
 	if (base && base->GetSex())
 		gender = 1;
 
@@ -418,7 +418,7 @@ static void Impact_Hook(UInt32 ecx, UInt32* stack)
 	TESObjectREFR* caster = (TESObjectREFR*)((UInt32*)stack[9])[35];
 
 	int hitNode = -1;
-	float scale = actor->GetScale();
+	float scale = actor->GetBaseScale(); //actor->GetScale();
 	for (int i = 0; i < nodeNames.size(); i++)
 	{
 		NiAVObject *obj = node->GetObjectByName(nodeNames[i].first);
@@ -538,7 +538,7 @@ static void Impact_Hook(UInt32 ecx, UInt32* stack)
 				if (ini.DamageTypeHeart != 0)
 					ApplyLocationalDamage(actor, ini.DamageTypeHeart, GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_HeartDamageMultiplier), caster_actor);
 
-				if (ini.DisplayNotification && (actor == g_thePlayer || caster_actor == g_thePlayer))
+				if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 				{
 					std::string str = ini.HeartMessageFront + std::string(actor->GetReferenceName()) + ini.HeartMessageBack;
 					fnDebug_Notification(str.c_str(), false, true);
