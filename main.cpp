@@ -24,6 +24,7 @@
 #define XBYAK_NO_OP_NAMES // How do other plugins actually define this..?
 
 #include <xbyak/xbyak.h>
+#include "skse64_common/BranchTrampoline.h"
 
 #include "iniSettings.h"
 
@@ -77,10 +78,17 @@ DEFINE_MEMBER_FN(DamageActorValue, void, DAMAGEACTORVALUE_FN, UInt32 unk1, UInt3
 DEFINE_MEMBER_FN(PushActorAway, void, PUSHACTORAWAY_FN, Actor* actor, float x, float y, float z, float force);
 */
 
+// globals
+SKSEPapyrusInterface* g_papyrus = nullptr;
+SKSEMessagingInterface* g_messaging = nullptr;
+PluginHandle g_pluginHandle = kPluginHandle_Invalid;
+
+int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* akTarget, NiPoint3* point, UInt32 unk1,
+	UInt32 unk2, UInt8 unk3);
 
 struct DoAddHook_Code : Xbyak::CodeGenerator
 {
-	DoAddHook_Code(void* buf, UInt64 hook_OnProjectileHit) : CodeGenerator(4096, buf)
+	DoAddHook_Code(void* buf, uintptr_t hook_OnProjectileHit) : CodeGenerator(4096, buf)
 	{
 		Xbyak::Label retnLabel;
 		Xbyak::Label funcLabel;
@@ -114,19 +122,33 @@ struct DoAddHook_Code : Xbyak::CodeGenerator
 };
 
 
-/*
 
-_MESSAGE("[STARTUP] Hooking OnProjectileHit function");
+void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 {
+	switch (msg->type)
+	{
+	case SKSEMessagingInterface::kMessage_DataLoaded:
+		if (!g_branchTrampoline.Create(1024 * 64))
+		{
+			_FATALERROR("[ERROR] couldn't create branch trampoline. this is fatal. skipping remainder of init process.");
+			return;
+		}
 
+		if (!g_localTrampoline.Create(1024 * 64, nullptr))
+		{
+			_FATALERROR("[ERROR] couldn't create codegen buffer. this is fatal. skipping remainder of init process.");
+			return;
+		}
 
-	void* codeBuf = g_localTrampoline.StartAlloc();
-	DoAddHook_Code code(codeBuf, uintptr_t(OnProjectileHitFunctionHooked));
-	g_localTrampoline.EndAlloc(code.getCurr());
+		void* codeBuf = g_localTrampoline.StartAlloc();
+		DoAddHook_Code code(codeBuf, (uintptr_t)OnProjectileHitFunctionHooked);
+		g_localTrampoline.EndAlloc(code.getCurr());
 
-	g_branchTrampoline.Write6Branch(OnProjectileHitHookLocation.GetUIntPtr(), uintptr_t(code.getCode()));
+		g_branchTrampoline.Write6Branch(OnProjectileHitHookLocation.GetUIntPtr(), uintptr_t(code.getCode()));
+		break;
+	}
 }
-*/
+
 
 extern "C" {
 	bool SKSEPlugin_Query(const SKSEInterface * skse, PluginInfo * info)
@@ -162,12 +184,19 @@ extern "C" {
 			return false;
 		}
 
+		g_messaging = static_cast<SKSEMessagingInterface *>(skse->QueryInterface((kInterface_Messaging)));
+		if (!g_messaging)
+		{
+			_FATALERROR("[ERROR] couldn't get messaging interface");
+			return false;
+		}
+
 		return true;
 	}
 
 	bool SKSEPlugin_Load(const SKSEInterface * skse)
 	{
-		// Setup hook
+		g_messaging->RegisterListener(g_pluginHandle, "SKSE", SKSEMessageHandler);
 		return true;
 	}
 };
@@ -544,226 +573,244 @@ static void ApplyLocationalEffect(Actor* actor, UInt32 effectType, double chance
 // or 	SpellItem* leftHandSpell;						// 1C0
 //	SpellItem* rightHandSpell;						// 1C8
 
-static void Impact_Hook(UInt32 ecx, UInt32* stack)
+//static void Impact_Hook(UInt32 ecx, UInt32* stack)
+int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* akTarget, NiPoint3* point, UInt32 unk1,
+	UInt32 unk2, UInt8 unk3)
 {
-	TESObjectCELL* cell = (TESObjectCELL*)stack[1];
-	if (!cell)
-		return;
-
-	//If sweep attack, type is int?
-	if (((UInt32*)stack[9])[35] < cell->objectList.count)
-		return;
-
-	NiPoint3* hit_pos = (NiPoint3*)stack[5];
-	TESObjectREFR* target = (TESObjectREFR*)stack[10];
-	if (!hit_pos || !target)
-		return;
-
-	Actor* actor = DYNAMIC_CAST(target, TESObjectREFR, Actor);//DYNAMIC_CAST<Actor*>(target);
-	if (!actor || actor->IsDead(true)) //|| actor->IsInKillMove())
-		return;
-
-	TESRace* race = actor->race; //actor->GetRace();
-	if (!race)
-		return;
-
-	NiNode *node = actor->GetNiNode();
-	if (actor == *g_thePlayer && (*g_thePlayer)->loadedState)
+	if (akProjectile != nullptr && akTarget != nullptr && akProjectile->formType == kFormType_Arrow)
 	{
-		PlayerCamera* camera = PlayerCamera::GetSingleton();
-		node = (*g_thePlayer)->firstPersonSkeleton; //camera && camera->IsFirstPerson() ? g_thePlayer->firstPersonSkeleton : g_thePlayer->loadedState->node;
-	}
 
-	if (!node)
-		return;
+		//TESObjectCELL* cell = (TESObjectCELL*)stack[1];
+		//if (!cell)
+		//	return;
 
-	/* ref code:
-			TESNPC * actorBase = DYNAMIC_CAST((*g_thePlayer)->baseForm, TESForm, TESNPC);
-		if(actorBase) {
-			args->result->SetNumber(CALL_MEMBER_FN(actorBase, GetSex)());
-		}
-	*/
+		//If sweep attack, type is int?
+		//if (((UInt32*)stack[9])[35] < cell->objectList.count)
+		//	return;
 
-	int gender = 0;
-	TESNPC* base = DYNAMIC_CAST(actor->baseForm, TESForm, TESNPC);
-	if (base && CALL_MEMBER_FN(base, GetSex)())
-		gender = 1;
 
-	std::string pathString = std::string(race->behaviorGraph[gender].name);
-	ini.ToLower(pathString);
-	static std::vector<Pair> defaultNodeNames = { { "NPC Head [Head]", 20 },{ "NPC R Calf [RClf]", 20 },{ "NPC L Calf [LClf]", 20 },{ "NPC R Forearm [RLar]", 20 },{ "NPC L Forearm [LLar]", 20 } };
-	std::vector<Pair> nodeNames = locationalNodeMap.count(pathString) >= 1 ? locationalNodeMap.at(pathString) : defaultNodeNames;
+		NiPoint3* hit_pos = point;
+		TESObjectREFR* target = akTarget; //(TESObjectREFR*)stack[10];
+		//if (!hit_pos || !target)
+		//	return;
 
-	if (nodeNames.empty())
-		return;
+		Actor* actor = DYNAMIC_CAST(target, TESObjectREFR, Actor);//DYNAMIC_CAST<Actor*>(target);
+		if (!actor || actor->IsDead(true)) //|| actor->IsInKillMove())
+			return OnProjectileHitFunction(akProjectile, akTarget, point, unk1, unk2, unk3);;
 
-	BGSAttackData* attackData = (BGSAttackData*)((UInt32*)stack[9])[9];
-	TESObjectWEAP* weapon = (TESObjectWEAP*)((UInt32*)stack[9])[10];
-	Projectile* projectile = (Projectile*)((UInt32*)stack[9])[32];
-	TESObjectREFR* caster = (TESObjectREFR*)((UInt32*)stack[9])[35];
+		TESRace* race = actor->race; //actor->GetRace();
+		if (!race)
+			return OnProjectileHitFunction(akProjectile, akTarget, point, unk1, unk2, unk3);;
 
-	int hitNode = -1;
-	float scale = CALL_MEMBER_FN(actor, GetBaseScale)(); //actor->GetScale();
-	for (int i = 0; i < nodeNames.size(); i++)
-	{
-		const char* nodeNameKey = (const char*)nodeNames[i].first;
-		NiAVObject *obj = node->GetObjectByName(&nodeNameKey);  // arg type of this changed... is it safe?
-		if (obj)
+		NiNode *node = actor->GetNiNode();
+		if (actor == *g_thePlayer && (*g_thePlayer)->loadedState)
 		{
-			NiPoint3 node_pos = obj->GetWorldTranslate();  // TODO: figure out how to get this..
+			PlayerCamera* camera = PlayerCamera::GetSingleton();
+#ifdef SKYRIMVR
+			node = (*g_thePlayer)->firstPersonSkeleton; //camera && camera->IsFirstPerson() ? g_thePlayer->firstPersonSkeleton : g_thePlayer->loadedState->node;
+#else
+			node = camera && camera->IsFirstPerson() ? (*g_thePlayer)->firstPersonSkeleton : (*g_thePlayer)->loadedState->node;
+#endif
+		}
 
-			double dx = hit_pos->x - node_pos.x;
-			double dy = hit_pos->y - node_pos.y;
-			double dz = hit_pos->z - node_pos.z;
-			double d2 = dx * dx + dy * dy + dz * dz;
+		if (!node)
+			return OnProjectileHitFunction(akProjectile, akTarget, point, unk1, unk2, unk3);
 
-			if (d2 < nodeNames[i].second * scale * nodeNames[i].second * scale)
+		/* ref code:
+				TESNPC * actorBase = DYNAMIC_CAST((*g_thePlayer)->baseForm, TESForm, TESNPC);
+			if(actorBase) {
+				args->result->SetNumber(CALL_MEMBER_FN(actorBase, GetSex)());
+			}
+		*/
+
+		int gender = 0;
+		TESNPC* base = DYNAMIC_CAST(actor->baseForm, TESForm, TESNPC);
+		if (base && CALL_MEMBER_FN(base, GetSex)())
+			gender = 1;
+
+		std::string pathString = std::string(race->behaviorGraph[gender].name);
+		ini.ToLower(pathString);
+		static std::vector<Pair> defaultNodeNames = { { "NPC Head [Head]", 20 },{ "NPC R Calf [RClf]", 20 },{ "NPC L Calf [LClf]", 20 },{ "NPC R Forearm [RLar]", 20 },{ "NPC L Forearm [LLar]", 20 } };
+		std::vector<Pair> nodeNames = locationalNodeMap.count(pathString) >= 1 ? locationalNodeMap.at(pathString) : defaultNodeNames;
+
+		if (nodeNames.empty())
+			return OnProjectileHitFunction(akProjectile, akTarget, point, unk1, unk2, unk3);
+
+		BGSAttackData* attackData = nullptr;  //(BGSAttackData*)((UInt32*)stack[9])[9];
+		TESObjectWEAP* weapon = nullptr; //(TESObjectWEAP*)((UInt32*)stack[9])[10];
+		Projectile* projectile = akProjectile; //(Projectile*)((UInt32*)stack[9])[32];
+		TESObjectREFR* caster = nullptr; //(TESObjectREFR*)((UInt32*)stack[9])[35];
+
+		int hitNode = -1;
+		float scale = CALL_MEMBER_FN(actor, GetBaseScale)(); //actor->GetScale();
+		for (int i = 0; i < nodeNames.size(); i++)
+		{
+			const char* nodeNameKey = (const char*)nodeNames[i].first;
+			NiAVObject *obj = node->GetObjectByName(&nodeNameKey);  // arg type of this changed... is it safe?
+			if (obj)
 			{
-				hitNode = i;
-				break;
+				/*
+					const NiPoint3 & GetWorldTranslate() const { return m_worldTransform.pos;}
+				*/
+
+				//NiPoint3 node_pos = obj->GetWorldTranslate();  // TODO: figure out how to get this..
+				NiPoint3 node_pos = obj->m_worldTransform.pos;
+
+				double dx = hit_pos->x - node_pos.x;
+				double dy = hit_pos->y - node_pos.y;
+				double dz = hit_pos->z - node_pos.z;
+				double d2 = dx * dx + dy * dy + dz * dz;
+
+				if (d2 < nodeNames[i].second * scale * nodeNames[i].second * scale)
+				{
+					hitNode = i;
+					break;
+				}
 			}
 		}
-	}
 
-	if (hitNode != -1)
-	{
-		TESObjectREFR* caster_ref = nullptr;
-
-		if (projectile)
+		if (hitNode != -1)
 		{
-			UInt32* handle = Projectile_GetActorCauseFn(projectile);
+			TESObjectREFR* caster_ref = nullptr;
+
+			if (projectile)
+			{
+				UInt32* handle = Projectile_GetActorCauseFn(projectile);
 
 #ifdef SKYRIMVR
-			TESObjectREFR* refCaster = nullptr;
+				TESObjectREFR* refCaster = nullptr;
 #else
-			NiPointer<TESObjectREFR> refCaster = nullptr;
+				NiPointer<TESObjectREFR> refCaster = nullptr;
 #endif
 
-			if (handle && *handle != *g_invalidRefHandle)
-			{
+				if (handle && *handle != *g_invalidRefHandle)
+				{
 
 #ifdef SKYRIMVR
-				LookupREFRByHandle(handle, &refCaster); // SKSE_VR takes handle ptr here, not ref? - also 2nd arg is double ptr not NiPointer template
+					LookupREFRByHandle(handle, &refCaster); // SKSE_VR takes handle ptr here, not ref? - also 2nd arg is double ptr not NiPointer template
 #else
-				LookupREFRByHandle(*handle, refCaster);
+					LookupREFRByHandle(*handle, refCaster);
 #endif
 
-				// Replaced with x64 code above ----
-			//RefHandle* handle = projectile->GetActorCause();
-			//if (handle && *handle != g_invalidRefHandle)
-			//	TESObjectREFR::LookupByHandle(*handle, caster_ref);
-			}
-			else
-			{
-				caster_ref = caster;
-			}
-
-			Actor* caster_actor = nullptr;
-			if (caster_ref)
-				caster_actor = DYNAMIC_CAST(caster_ref, TESObjectREFR, Actor);
-
-			bool done = false;
-			FoundEquipArmor equipArmor;
-
-			switch (hitNode)
-			{
-			case 0:
-				if (ini.EnableHead)
-				{
-					equipArmor = GetEquippedArmorEx(actor, BGSBipedObjectForm::kPart_Head);
-					if (!equipArmor.pExtraData)
-						equipArmor = GetEquippedArmorEx(actor, BGSBipedObjectForm::kPart_Hair);
-
-					if (ini.EffectTypeHead != 0)
-						ApplyLocationalEffect(actor, ini.EffectTypeHead, GetLocationalEffectChance(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_HeadEffectChanceMultiplier), equipArmor, pathString);
-
-					if (ini.DamageTypeHead != 0)
-						ApplyLocationalDamage(actor, ini.DamageTypeHead, GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_HeadDamageMultiplier), caster_actor);
-
-					if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
-					{
-						std::string str = ini.HeadMessageFront + std::string(actor->GetFullName()) + ini.HeadMessageBack;
-						fnDebug_Notification(str.c_str(), false, true);
-					}
-
-					done = true;
+					// Replaced with x64 code above ----
+				//RefHandle* handle = projectile->GetActorCause();
+				//if (handle && *handle != g_invalidRefHandle)
+				//	TESObjectREFR::LookupByHandle(*handle, caster_ref);
 				}
-				break;
-			case 1:
-			case 2:
-				if (ini.EnableFoot)
+				else
 				{
-					equipArmor = GetEquippedArmorEx(actor, BGSBipedObjectForm::kPart_Feet);
-
-					if (ini.EffectTypeFoot != 0)
-						ApplyLocationalEffect(actor, ini.EffectTypeFoot, GetLocationalEffectChance(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_FootEffectChanceMultiplier), equipArmor, pathString);
-
-					if (ini.DamageTypeFoot != 0)
-						ApplyLocationalDamage(actor, ini.DamageTypeFoot, GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_FootDamageMultiplier), caster_actor);
-
-					if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
-					{
-						std::string str = ini.FootMessageFront + std::string(actor->GetFullName()) + ini.FootMessageBack;
-						fnDebug_Notification(str.c_str(), false, true);
-					}
-
-					done = true;
+					caster_ref = caster;
 				}
-				break;
-			case 3:
-			case 4:
-				if (ini.EnableArms)
+
+				Actor* caster_actor = nullptr;
+				if (caster_ref)
+					caster_actor = DYNAMIC_CAST(caster_ref, TESObjectREFR, Actor);
+
+				bool done = false;
+				FoundEquipArmor equipArmor;
+
+				switch (hitNode)
 				{
-					equipArmor = GetEquippedArmorEx(actor, BGSBipedObjectForm::kPart_Hands);
-
-					if (ini.EffectTypeArms != 0)
-						ApplyLocationalEffect(actor, ini.EffectTypeArms, GetLocationalEffectChance(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_ArmsEffectChanceMultiplier), equipArmor, pathString);
-
-					if (ini.DamageTypeArms != 0)
-						ApplyLocationalDamage(actor, ini.DamageTypeArms, GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_ArmsDamageMultiplier), caster_actor);
-
-					if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
+				case 0:
+					if (ini.EnableHead)
 					{
-						std::string str = ini.ArmsMessageFront + std::string(actor->GetFullName()) + ini.ArmsMessageBack;
-						fnDebug_Notification(str.c_str(), false, true);
-					}
+						equipArmor = GetEquippedArmorEx(actor, BGSBipedObjectForm::kPart_Head);
+						if (!equipArmor.pExtraData)
+							equipArmor = GetEquippedArmorEx(actor, BGSBipedObjectForm::kPart_Hair);
 
-					done = true;
+						if (ini.EffectTypeHead != 0)
+							ApplyLocationalEffect(actor, ini.EffectTypeHead, GetLocationalEffectChance(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_HeadEffectChanceMultiplier), equipArmor, pathString);
+
+						if (ini.DamageTypeHead != 0)
+							ApplyLocationalDamage(actor, ini.DamageTypeHead, GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_HeadDamageMultiplier), caster_actor);
+
+						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
+						{
+							std::string str = ini.HeadMessageFront + std::string(actor->GetFullName()) + ini.HeadMessageBack;
+							fnDebug_Notification(str.c_str(), false, true);
+						}
+
+						done = true;
+					}
+					break;
+				case 1:
+				case 2:
+					if (ini.EnableFoot)
+					{
+						equipArmor = GetEquippedArmorEx(actor, BGSBipedObjectForm::kPart_Feet);
+
+						if (ini.EffectTypeFoot != 0)
+							ApplyLocationalEffect(actor, ini.EffectTypeFoot, GetLocationalEffectChance(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_FootEffectChanceMultiplier), equipArmor, pathString);
+
+						if (ini.DamageTypeFoot != 0)
+							ApplyLocationalDamage(actor, ini.DamageTypeFoot, GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_FootDamageMultiplier), caster_actor);
+
+						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
+						{
+							std::string str = ini.FootMessageFront + std::string(actor->GetFullName()) + ini.FootMessageBack;
+							fnDebug_Notification(str.c_str(), false, true);
+						}
+
+						done = true;
+					}
+					break;
+				case 3:
+				case 4:
+					if (ini.EnableArms)
+					{
+						equipArmor = GetEquippedArmorEx(actor, BGSBipedObjectForm::kPart_Hands);
+
+						if (ini.EffectTypeArms != 0)
+							ApplyLocationalEffect(actor, ini.EffectTypeArms, GetLocationalEffectChance(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_ArmsEffectChanceMultiplier), equipArmor, pathString);
+
+						if (ini.DamageTypeArms != 0)
+							ApplyLocationalDamage(actor, ini.DamageTypeArms, GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_ArmsDamageMultiplier), caster_actor);
+
+						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
+						{
+							std::string str = ini.ArmsMessageFront + std::string(actor->GetFullName()) + ini.ArmsMessageBack;
+							fnDebug_Notification(str.c_str(), false, true);
+						}
+
+						done = true;
+					}
+					break;
+				case 5:
+					if (ini.EnableHeart)
+					{
+						equipArmor = GetEquippedArmorEx(actor, BGSBipedObjectForm::kPart_Body);
+
+						if (ini.EffectTypeHeart != 0)
+							ApplyLocationalEffect(actor, ini.EffectTypeHeart, GetLocationalEffectChance(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_HeartEffectChanceMultiplier), equipArmor, pathString);
+
+						if (ini.DamageTypeHeart != 0)
+							ApplyLocationalDamage(actor, ini.DamageTypeHeart, GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_HeartDamageMultiplier), caster_actor);
+
+						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
+						{
+							std::string str = ini.HeartMessageFront + std::string(actor->GetFullName()) + ini.HeartMessageBack;
+							fnDebug_Notification(str.c_str(), false, true);
+						}
+
+						done = true;
+					}
+					break;
 				}
-				break;
-			case 5:
-				if (ini.EnableHeart)
+
+				// TODO: fix this
+				/*
+				if (done && ini.DisplayImpactEffect)
 				{
-					equipArmor = GetEquippedArmorEx(actor, BGSBipedObjectForm::kPart_Body);
-
-					if (ini.EffectTypeHeart != 0)
-						ApplyLocationalEffect(actor, ini.EffectTypeHeart, GetLocationalEffectChance(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_HeartEffectChanceMultiplier), equipArmor, pathString);
-
-					if (ini.DamageTypeHeart != 0)
-						ApplyLocationalDamage(actor, ini.DamageTypeHeart, GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_HeartDamageMultiplier), caster_actor);
-
-					if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
-					{
-						std::string str = ini.HeartMessageFront + std::string(actor->GetFullName()) + ini.HeartMessageBack;
-						fnDebug_Notification(str.c_str(), false, true);
-					}
-
-					done = true;
+					typedef void(*FnPlayImpactEffect)(TESObjectCELL*, float, const char*, NiPoint3*, NiPoint3*, float, UInt32, UInt32);
+					const FnPlayImpactEffect fnPlayImpactEffect = (FnPlayImpactEffect)0x005F07C0;
+					fnPlayImpactEffect(cell, 1.0f, "LocationalDamage\\LocDamageImpact01.nif", (NiPoint3*)stack[4], hit_pos, 1.0f, stack[7], stack[8]);
 				}
-				break;
+				*/
 			}
-
-			// TODO: fix this
-			/*
-			if (done && ini.DisplayImpactEffect)
-			{
-				typedef void(*FnPlayImpactEffect)(TESObjectCELL*, float, const char*, NiPoint3*, NiPoint3*, float, UInt32, UInt32);
-				const FnPlayImpactEffect fnPlayImpactEffect = (FnPlayImpactEffect)0x005F07C0;
-				fnPlayImpactEffect(cell, 1.0f, "LocationalDamage\\LocDamageImpact01.nif", (NiPoint3*)stack[4], hit_pos, 1.0f, stack[7], stack[8]);
-			}
-			*/
 		}
 	}
+
+	return OnProjectileHitFunction(akProjectile, akTarget, point, unk1, unk2, unk3);
 }
 
 /*
