@@ -13,12 +13,17 @@
 #include "skse64_common/skse_version.h"
 #include "skse64_common/Relocation.h"
 #include "skse64_common/SafeWrite.h"
+#include "skse64_common/Utilities.h"
 
 #include "libskyrim\BGSAttackData.h"
 
 #include <random>
 
 #include <shlobj.h>
+#include <cinttypes>
+#define XBYAK_NO_OP_NAMES // How do other plugins actually define this..?
+
+#include <xbyak/xbyak.h>
 
 #include "iniSettings.h"
 
@@ -27,7 +32,101 @@
 //class ActorProcessManager
 //DEFINE_MEMBER_FN(PushActorAway, void, 0x00723FE0, Actor* actor, float x, float y, float z, float force);
 
+/* SkyrimVR matches
+0.24	0.54	GI--E--	0000000140492EC0	sub_0000000140492EC0	006E0760	sub_006E0760	 	edges callgraph MD index	5	5	24	9	33	120	3	6	39
+0.19	0.33	GI--E-C	000000014030CE50	sub_000000014030CE50	00723FE0	sub_00723FE0	 	call sequence matching(sequence)	10	11	28	26	63	257	8	15	39
 
+*/
+
+
+#ifdef SKYRIMVR
+
+#define ONPROJECTILEHIT_HOOKLOCATION							0x00777E2A  // in VR, this is not called from HealthDamageFunctor_CTOR, so we will try to call it from BeamProjectile_vf_sub_140777A30 instead
+#define ONPROJECTILEHIT_INNERFUNCTION							0x0077E4E0
+
+#define PROJECTILE_GETACTORCAUSEFN								0x00779010 // ??_7Projectile@@6B@			vtbl[51]
+
+#define DAMAGEACTORVALUE_FN										0x009848B0
+#define PUSHACTORAWAY_FN										0x009D0E60
+
+#else
+// SSE 1.5.73
+
+#define ONPROJECTILEHIT_HOOKLOCATION							0x0074CB0A
+#define ONPROJECTILEHIT_INNERFUNCTION							0x007531C0
+
+#define PROJECTILE_GETACTORCAUSEFN								0x0074DCF0 // ??_7Projectile@@6B@			vtbl[51]
+
+#define DAMAGEACTORVALUE_FN										0x0094A4C0
+#define PUSHACTORAWAY_FN										0x00996340
+
+#endif
+
+typedef int64_t(*_OnProjectileHitFunction)(Projectile* akProjectile, TESObjectREFR* akTarget, NiPoint3* point,
+	UInt32 unk1, UInt32 unk2, UInt8 unk3);
+RelocAddr<_OnProjectileHitFunction> OnProjectileHitFunction(ONPROJECTILEHIT_INNERFUNCTION);
+RelocAddr<uintptr_t> OnProjectileHitHookLocation(ONPROJECTILEHIT_HOOKLOCATION);
+
+typedef UInt32*(*_GetActorCause)(TESObjectREFR* refr);
+RelocAddr<_GetActorCause> Projectile_GetActorCauseFn(PROJECTILE_GETACTORCAUSEFN);
+
+// Won't work like this.. we need to create our own actor class probably
+/*
+MEMBER_FN_PREFIX(Actor);
+DEFINE_MEMBER_FN(DamageActorValue, void, DAMAGEACTORVALUE_FN, UInt32 unk1, UInt32 actorValueID, float damage, Actor* akAggressor);
+DEFINE_MEMBER_FN(PushActorAway, void, PUSHACTORAWAY_FN, Actor* actor, float x, float y, float z, float force);
+*/
+
+
+struct DoAddHook_Code : Xbyak::CodeGenerator
+{
+	DoAddHook_Code(void* buf, UInt64 hook_OnProjectileHit) : CodeGenerator(4096, buf)
+	{
+		Xbyak::Label retnLabel;
+		Xbyak::Label funcLabel;
+
+		//  .text:000000014074CFBA                 lea     r9, [r13 + 0Ch]; a4
+		lea(r9, ptr[r13 + 0x0C]);
+		// 	.text:000000014074CFBE                 mov[rsp + 180h + a6], 0; a6
+		mov(byte[rsp + 0x180 + 0x158], 0);
+		// 	.text:000000014074CFC3                 mov[rsp + 180h + a5], ecx; a5
+		mov(dword[rsp + 0x180 + 0x160], ecx);
+		// 	.text:000000014074CFC7                 mov     r8, r13; a3
+		mov(r8, r13);
+		// 	.text:000000014074CFCA                 mov     rdx, rbx; a2
+		mov(rdx, rbx);
+		// 	.text:000000014074CFCD                 mov     rcx, r14; a1
+		mov(rcx, r14);
+		// 	.text:000000014074CFD0                 call    sub_140753670
+		// int64_t OnProjectileHitFunctionHooked(Projectile * akProjectile, TESObjectREFR * akTarget, NiPoint3 * point, UInt32 unk1, UInt32 unk2, UInt8 unk3)
+		call(ptr[rip + funcLabel]);
+		// 0x1B
+		//  .text:000000014074CFD5                 lea     r8, [r14+0F0h]			
+		// exit 74CFD5
+		jmp(ptr[rip + retnLabel]);
+
+		L(funcLabel);
+		dq(hook_OnProjectileHit);
+
+		L(retnLabel);
+		dq(OnProjectileHitHookLocation.GetUIntPtr() + 0x1B);
+	}
+};
+
+
+/*
+
+_MESSAGE("[STARTUP] Hooking OnProjectileHit function");
+{
+
+
+	void* codeBuf = g_localTrampoline.StartAlloc();
+	DoAddHook_Code code(codeBuf, uintptr_t(OnProjectileHitFunctionHooked));
+	g_localTrampoline.EndAlloc(code.getCurr());
+
+	g_branchTrampoline.Write6Branch(OnProjectileHitHookLocation.GetUIntPtr(), uintptr_t(code.getCode()));
+}
+*/
 
 extern "C" {
 	bool SKSEPlugin_Query(const SKSEInterface * skse, PluginInfo * info)
@@ -72,6 +171,10 @@ extern "C" {
 		return true;
 	}
 };
+
+
+
+
 
 typedef std::pair<BSFixedString, UInt32> Pair;
 std::unordered_map<std::string, std::vector<Pair>> locationalNodeMap = {
@@ -343,8 +446,8 @@ static void ApplyLocationalDamage(Actor* actor, UInt32 damageType, float dmg, Ac
 	if (dmg >= 0.0f)
 		return;
 
-	if ((damageType & 1) != 0)
-		actor->DamageActorValue(2, 24, dmg, akAggressor);
+	if ((damageType & 1) != 0) 
+		CALL_MEMBER_FN(actor, DamageActorValue)(2, 24, dmg, akAggressor);  // TODO: we will probably need a special definition of Actor class to fix this..
 
 	if ((damageType & 2) != 0)
 		actor->DamageActorValue(2, 25, dmg, akAggressor);
@@ -507,7 +610,7 @@ static void Impact_Hook(UInt32 ecx, UInt32* stack)
 		NiAVObject *obj = node->GetObjectByName(&nodeNameKey);  // arg type of this changed... is it safe?
 		if (obj)
 		{
-			NiPoint3 node_pos = obj->GetWorldTranslate();
+			NiPoint3 node_pos = obj->GetWorldTranslate();  // TODO: figure out how to get this..
 
 			double dx = hit_pos->x - node_pos.x;
 			double dy = hit_pos->y - node_pos.y;
