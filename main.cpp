@@ -122,6 +122,13 @@ struct DoAddHook_Code : Xbyak::CodeGenerator
 };
 
 
+// call "DamageActorValue" script func directly by address
+namespace papyrusActor
+{
+
+	typedef void (*_DamageActorValue)(Actor * thisActor, BSFixedString const &dmgValueName, float dmg);
+	RelocAddr<_DamageActorValue> DamageActorValue(DAMAGEACTORVALUE_FN);
+}
 
 void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 {
@@ -475,14 +482,14 @@ static void ApplyLocationalDamage(Actor* actor, UInt32 damageType, float dmg, Ac
 	if (dmg >= 0.0f)
 		return;
 
-	if ((damageType & 1) != 0) 
-		CALL_MEMBER_FN(actor, DamageActorValue)(2, 24, dmg, akAggressor);  // TODO: we will probably need a special definition of Actor class to fix this..
+	if ((damageType & 1) != 0)
+		papyrusActor::DamageActorValue(actor, "Health", dmg); //CALL_MEMBER_FN(actor, DamageActorValue)(2, 24, dmg, akAggressor);  // TODO: we will probably need a special definition of Actor class to fix this..
 
 	if ((damageType & 2) != 0)
-		actor->DamageActorValue(2, 25, dmg, akAggressor);
+		papyrusActor::DamageActorValue(actor, "Health", dmg); //actor->DamageActorValue(2, 25, dmg, akAggressor);
 
 	if ((damageType & 4) != 0)
-		actor->DamageActorValue(2, 26, dmg, akAggressor);
+		papyrusActor::DamageActorValue(actor, "Health", dmg); //actor->DamageActorValue(2, 26, dmg, akAggressor);
 }
 
 static void ApplyLocationalEffect(Actor* actor, UInt32 effectType, double chance, FoundEquipArmor equipArmor, std::string pathString)
