@@ -135,6 +135,9 @@ void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 	switch (msg->type)
 	{
 	case SKSEMessagingInterface::kMessage_DataLoaded:
+
+		ini.Load();
+
 		if (!g_branchTrampoline.Create(1024 * 64))
 		{
 			_FATALERROR("[ERROR] couldn't create branch trampoline. this is fatal. skipping remainder of init process.");
@@ -152,6 +155,9 @@ void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 		g_localTrampoline.EndAlloc(code.getCurr());
 
 		g_branchTrampoline.Write6Branch(OnProjectileHitHookLocation.GetUIntPtr(), uintptr_t(code.getCode()));
+
+		_MESSAGE("Code hooked successfully!");
+
 		break;
 	}
 }
@@ -175,6 +181,8 @@ extern "C" {
 		info->infoVersion = PluginInfo::kInfoVersion;
 		info->name = "LocationalDamageSKSE64 Plugin";
 		info->version = 1;
+
+		g_pluginHandle = skse->GetPluginHandle();
 
 		if (skse->isEditor)
 		{
@@ -203,7 +211,13 @@ extern "C" {
 
 	bool SKSEPlugin_Load(const SKSEInterface * skse)
 	{
-		g_messaging->RegisterListener(g_pluginHandle, "SKSE", SKSEMessageHandler);
+		bool res = g_messaging->RegisterListener(g_pluginHandle, "SKSE", SKSEMessageHandler);
+		if (!res)
+		{
+			_MESSAGE("Failed to register SKSE Message handler.");
+		}
+
+
 		return true;
 	}
 };
@@ -584,7 +598,7 @@ static void ApplyLocationalEffect(Actor* actor, UInt32 effectType, double chance
 int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* akTarget, NiPoint3* point, UInt32 unk1,
 	UInt32 unk2, UInt8 unk3)
 {
-	if (akProjectile != nullptr && akTarget != nullptr && akProjectile->formType == kFormType_Arrow)
+	if (akProjectile != nullptr && akTarget != nullptr) //&& akProjectile->formType == kFormType_Arrow)
 	{
 
 		//TESObjectCELL* cell = (TESObjectCELL*)stack[1];
@@ -602,7 +616,8 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 		//	return;
 
 		Actor* actor = DYNAMIC_CAST(target, TESObjectREFR, Actor);//DYNAMIC_CAST<Actor*>(target);
-		if (!actor || actor->IsDead(true)) //|| actor->IsInKillMove())
+		// actor->IsDead(true) seems to crash in VR as well.. Try in SE?
+		if (!actor) //|| actor->IsDead(true)) //|| actor->IsInKillMove())
 			return OnProjectileHitFunction(akProjectile, akTarget, point, unk1, unk2, unk3);;
 
 		TESRace* race = actor->race; //actor->GetRace();
@@ -695,14 +710,13 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 #ifdef SKYRIMVR
 					LookupREFRByHandle(handle, &refCaster); // SKSE_VR takes handle ptr here, not ref? - also 2nd arg is double ptr not NiPointer template
+
 #else
 					LookupREFRByHandle(*handle, refCaster);
+					caster_ref = refCaster
 #endif
 
-					// Replaced with x64 code above ----
-				//RefHandle* handle = projectile->GetActorCause();
-				//if (handle && *handle != g_invalidRefHandle)
-				//	TESObjectREFR::LookupByHandle(*handle, caster_ref);
+					caster_ref = (TESObjectREFR*)refCaster;
 				}
 				else
 				{
@@ -712,6 +726,20 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 				Actor* caster_actor = nullptr;
 				if (caster_ref)
 					caster_actor = DYNAMIC_CAST(caster_ref, TESObjectREFR, Actor);
+
+				// try to get a weapon from either hand...
+				if (caster_actor)
+				{
+					TESForm* equippedForm = caster_actor->GetEquippedObject(false);
+					weapon = DYNAMIC_CAST(equippedForm, TESForm, TESObjectWEAP);
+					
+					// try the other hand too
+					if (!weapon)
+					{
+						equippedForm = caster_actor->GetEquippedObject(true);
+						weapon = DYNAMIC_CAST(equippedForm, TESForm, TESObjectWEAP);
+					}
+				}
 
 				bool done = false;
 				FoundEquipArmor equipArmor;
