@@ -10,6 +10,7 @@
 #include <skse64/GameExtraData.h>
 #include <skse64/NiNodes.h>
 #include <skse64/GameCamera.h>
+#include <skse64/PapyrusVM.h>
 #include "skse64_common/skse_version.h"
 #include "skse64_common/Relocation.h"
 #include "skse64_common/SafeWrite.h"
@@ -122,11 +123,14 @@ struct DoAddHook_Code : Xbyak::CodeGenerator
 };
 
 
+// First params should be BSScript__Internal__VirtualMachine class ptr
+// Maybe at: 141F81900
+
 // call "DamageActorValue" script func directly by address
 namespace papyrusActor
 {
 
-	typedef void (*_DamageActorValue)(Actor * thisActor, BSFixedString const &dmgValueName, float dmg);
+	typedef void (*_DamageActorValue)(VMClassRegistry* VMinternal, UInt32 stackId, Actor * thisActor, BSFixedString const &dmgValueName, float dmg);
 	RelocAddr<_DamageActorValue> DamageActorValue(DAMAGEACTORVALUE_FN);
 }
 
@@ -278,8 +282,15 @@ std::unordered_map<std::string, std::vector<Pair>> locationalNodeMap = {
 { "actors\\dlc02\\hmdaedra\\hmdaedra.hkx",{ { "NPC M HeadNoodle01", 25 } } }
 };
 
-typedef void(*FnDebug_Notification)(const char*, bool, bool);
-const FnDebug_Notification fnDebug_Notification = (FnDebug_Notification)0x008997A0;
+//typedef void(*FnDebug_Notification)(const char*, bool, bool);
+//const FnDebug_Notification fnDebug_Notification = (FnDebug_Notification)0x008997A0;
+// TODO: debug notification in skyrim?  for now just do debug print
+
+void fnDebug_Notification(const char* str, bool flag1, bool flag2)
+{
+	OutputDebugStringA(str);
+}
+
 
 static bool Probability(double value)
 {
@@ -496,6 +507,9 @@ static void ApplyLocationalDamage(Actor* actor, UInt32 damageType, float dmg, Ac
 	if (dmg >= 0.0f)
 		return;
 
+	papyrusActor::DamageActorValue((*g_skyrimVM)->GetClassRegistry(), 0, akAggressor, "Health", dmg);
+
+	/*
 	if ((damageType & 1) != 0)
 		papyrusActor::DamageActorValue(actor, "Health", dmg); //CALL_MEMBER_FN(actor, DamageActorValue)(2, 24, dmg, akAggressor);  // TODO: we will probably need a special definition of Actor class to fix this..
 
@@ -504,6 +518,7 @@ static void ApplyLocationalDamage(Actor* actor, UInt32 damageType, float dmg, Ac
 
 	if ((damageType & 4) != 0)
 		papyrusActor::DamageActorValue(actor, "Health", dmg); //actor->DamageActorValue(2, 26, dmg, akAggressor);
+	*/
 }
 
 static void ApplyLocationalEffect(Actor* actor, UInt32 effectType, double chance, FoundEquipArmor equipArmor, std::string pathString)
