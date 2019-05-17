@@ -758,6 +758,8 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 				bool done = false;
 				FoundEquipArmor equipArmor;
+				float locationalDmgVal = 0.0f;
+				static char debugMsgBuff[2048] = { 0 };
 
 				switch (hitNode)
 				{
@@ -772,12 +774,16 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 							ApplyLocationalEffect(actor, ini.EffectTypeHead, GetLocationalEffectChance(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_HeadEffectChanceMultiplier), equipArmor, pathString);
 
 						if (ini.DamageTypeHead != 0)
-							ApplyLocationalDamage(actor, ini.DamageTypeHead, GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_HeadDamageMultiplier), caster_actor);
+						{
+							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_HeadDamageMultiplier);
+							ApplyLocationalDamage(actor, ini.DamageTypeHead, locationalDmgVal, caster_actor);
+						}
 
 						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 						{
-							std::string str = ini.HeadMessageFront + std::string(actor->GetFullName()) + ini.HeadMessageBack;
-							fnDebug_Notification(str.c_str(), false, true);
+							//std::string str = ini.HeadMessageFront + std::string(actor->GetFullName()) + ini.HeadMessageBack;
+							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.HeadMessageFront.c_str(), actor->GetFullName(), ini.HeadMessageBack.c_str(), locationalDmgVal);
+							fnDebug_Notification(debugMsgBuff, false, true);
 						}
 
 						done = true;
@@ -793,12 +799,17 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 							ApplyLocationalEffect(actor, ini.EffectTypeFoot, GetLocationalEffectChance(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_FootEffectChanceMultiplier), equipArmor, pathString);
 
 						if (ini.DamageTypeFoot != 0)
-							ApplyLocationalDamage(actor, ini.DamageTypeFoot, GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_FootDamageMultiplier), caster_actor);
+						{
+							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_FootDamageMultiplier);
+							ApplyLocationalDamage(actor, ini.DamageTypeFoot, locationalDmgVal, caster_actor);
+						}
 
 						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 						{
-							std::string str = ini.FootMessageFront + std::string(actor->GetFullName()) + ini.FootMessageBack;
-							fnDebug_Notification(str.c_str(), false, true);
+							//std::string str = ini.FootMessageFront + std::string(actor->GetFullName()) + ini.FootMessageBack;
+							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.FootMessageFront.c_str(), actor->GetFullName(), ini.FootMessageBack.c_str(), locationalDmgVal);
+							fnDebug_Notification(debugMsgBuff, false, true);
+
 						}
 
 						done = true;
@@ -814,12 +825,16 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 							ApplyLocationalEffect(actor, ini.EffectTypeArms, GetLocationalEffectChance(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_ArmsEffectChanceMultiplier), equipArmor, pathString);
 
 						if (ini.DamageTypeArms != 0)
-							ApplyLocationalDamage(actor, ini.DamageTypeArms, GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_ArmsDamageMultiplier), caster_actor);
+						{
+							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_ArmsDamageMultiplier);
+							ApplyLocationalDamage(actor, ini.DamageTypeArms, locationalDmgVal, caster_actor);
+						}
 
 						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 						{
-							std::string str = ini.ArmsMessageFront + std::string(actor->GetFullName()) + ini.ArmsMessageBack;
-							fnDebug_Notification(str.c_str(), false, true);
+							//std::string str = ini.ArmsMessageFront + std::string(actor->GetFullName()) + ini.ArmsMessageBack;
+							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.ArmsMessageFront.c_str(), actor->GetFullName(), ini.ArmsMessageBack.c_str(), locationalDmgVal);
+							fnDebug_Notification(debugMsgBuff, false, true);
 						}
 
 						done = true;
@@ -834,12 +849,16 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 							ApplyLocationalEffect(actor, ini.EffectTypeHeart, GetLocationalEffectChance(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_HeartEffectChanceMultiplier), equipArmor, pathString);
 
 						if (ini.DamageTypeHeart != 0)
-							ApplyLocationalDamage(actor, ini.DamageTypeHeart, GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_HeartDamageMultiplier), caster_actor);
-
+						{
+							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_HeartDamageMultiplier);
+							ApplyLocationalDamage(actor, ini.DamageTypeHeart, locationalDmgVal, caster_actor);
+						}
+						
 						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 						{
-							std::string str = ini.HeartMessageFront + std::string(actor->GetFullName()) + ini.HeartMessageBack;
-							fnDebug_Notification(str.c_str(), false, true);
+							//std::string str = ini.HeartMessageFront + std::string(actor->GetFullName()) + ini.HeartMessageBack;
+							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.HeartMessageFront.c_str(), actor->GetFullName(), ini.HeartMessageBack.c_str(), locationalDmgVal);
+							fnDebug_Notification(debugMsgBuff, false, true);
 						}
 
 						done = true;
@@ -862,39 +881,4 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 	return OnProjectileHitFunction(akProjectile, akTarget, point, unk1, unk2, unk3);
 }
-
-/*
-class LocationalDamagePlugin : public SKSEPlugin
-{
-public:
-	LocationalDamagePlugin()
-	{
-	}
-
-	virtual bool InitInstance() override
-	{
-		if (!Requires(kSKSEVersion_1_6_12))
-			return false;
-
-		SetName("LocationalDamage");
-		SetVersion(1);
-
-		return true;
-	}
-
-	virtual bool OnLoad() override
-	{
-		SKSEPlugin::OnLoad();
-
-		return true;
-	}
-
-	virtual void OnModLoaded() override
-	{
-		ini.Load();
-
-		HookRelCall(0x006C9014, Impact_Hook);
-	}
-} thePlugin;
-*/
 
