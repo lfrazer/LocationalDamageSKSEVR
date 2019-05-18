@@ -75,7 +75,7 @@ private:
 	void EraseIf(std::string &str, std::string sep);
 
 	void SetSettings();
-	std::string GetINIlFile();
+	std::string GetINIFile();
 	void SetINIData(std::vector<std::string> *list);
 	void SetINIDataArmor(std::vector<std::string> *list);
 	void SetINIDataDouble(std::vector<std::string> *list, double *setting);

@@ -61,7 +61,7 @@ LightArmorEffectChanceMultiplier(0.6)
 
 void INIFile::Load()
 {
-	std::string iniFilePath = GetINIlFile();
+	std::string iniFilePath = GetINIFile();
 	bool fileFound = IsFoundFile(iniFilePath.c_str());
 
 	_MESSAGE("Looking for INI @ %s, file found: %d\n", iniFilePath.c_str(), (int)fileFound);
@@ -156,32 +156,32 @@ void INIFile::EraseIf(std::string &str, std::string sep)
 void INIFile::SetSettings()
 {
 	static std::string section1 = "General";
-	std::vector<std::string> list1 = GetSectionKeys(section1.c_str(), GetINIlFile().c_str());
+	std::vector<std::string> list1 = GetSectionKeys(section1.c_str(), GetINIFile().c_str());
 	std::sort(list1.begin(), list1.end());
 	SetINIData(&list1);
 
 	static std::string section2 = "Armor";
-	std::vector<std::string> list2 = GetSectionKeys(section2.c_str(), GetINIlFile().c_str());
+	std::vector<std::string> list2 = GetSectionKeys(section2.c_str(), GetINIFile().c_str());
 	std::sort(list2.begin(), list2.end());
 	SetINIDataArmor(&list2);
 
 	static std::string section3 = "PlayerToNPC";
-	std::vector<std::string> list3 = GetSectionKeys(section3.c_str(), GetINIlFile().c_str());
+	std::vector<std::string> list3 = GetSectionKeys(section3.c_str(), GetINIFile().c_str());
 	std::sort(list3.begin(), list3.end());
 	SetINIDataDouble(&list3, PlayerToNPC);
 
 	static std::string section4 = "NPCToPlayer";
-	std::vector<std::string> list4 = GetSectionKeys(section4.c_str(), GetINIlFile().c_str());
+	std::vector<std::string> list4 = GetSectionKeys(section4.c_str(), GetINIFile().c_str());
 	std::sort(list4.begin(), list4.end());
 	SetINIDataDouble(&list4, NPCToPlayer);
 
 	static std::string section5 = "NPCToNPC";
-	std::vector<std::string> list5 = GetSectionKeys(section5.c_str(), GetINIlFile().c_str());
+	std::vector<std::string> list5 = GetSectionKeys(section5.c_str(), GetINIFile().c_str());
 	std::sort(list5.begin(), list5.end());
 	SetINIDataDouble(&list5, NPCToNPC);
 }
 
-std::string INIFile::GetINIlFile()
+std::string INIFile::GetINIFile()
 {
 	if (iniFilePath.empty())
 	{

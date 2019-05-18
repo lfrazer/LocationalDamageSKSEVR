@@ -790,8 +790,8 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 						{
-							//std::string str = ini.HeadMessageFront + std::string(actor->GetFullName()) + ini.HeadMessageBack;
-							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.HeadMessageFront.c_str(), actor->GetFullName(), ini.HeadMessageBack.c_str(), locationalDmgVal);
+							//std::string str = ini.HeadMessageFront + std::string(actor->GetName()) + ini.HeadMessageBack;
+							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.HeadMessageFront.c_str(), actor->GetName(), ini.HeadMessageBack.c_str(), locationalDmgVal);
 							fnDebug_Notification(debugMsgBuff, false, true);
 						}
 
@@ -815,8 +815,8 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 						{
-							//std::string str = ini.FootMessageFront + std::string(actor->GetFullName()) + ini.FootMessageBack;
-							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.FootMessageFront.c_str(), actor->GetFullName(), ini.FootMessageBack.c_str(), locationalDmgVal);
+							//std::string str = ini.FootMessageFront + std::string(actor->GetName()) + ini.FootMessageBack;
+							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.FootMessageFront.c_str(), actor->GetName(), ini.FootMessageBack.c_str(), locationalDmgVal);
 							fnDebug_Notification(debugMsgBuff, false, true);
 
 						}
@@ -841,8 +841,8 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 						{
-							//std::string str = ini.ArmsMessageFront + std::string(actor->GetFullName()) + ini.ArmsMessageBack;
-							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.ArmsMessageFront.c_str(), actor->GetFullName(), ini.ArmsMessageBack.c_str(), locationalDmgVal);
+							//std::string str = ini.ArmsMessageFront + std::string(actor->GetName()) + ini.ArmsMessageBack;
+							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.ArmsMessageFront.c_str(), actor->GetName(), ini.ArmsMessageBack.c_str(), locationalDmgVal);
 							fnDebug_Notification(debugMsgBuff, false, true);
 						}
 
@@ -865,8 +865,8 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 						
 						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 						{
-							//std::string str = ini.HeartMessageFront + std::string(actor->GetFullName()) + ini.HeartMessageBack;
-							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.HeartMessageFront.c_str(), actor->GetFullName(), ini.HeartMessageBack.c_str(), locationalDmgVal);
+							//std::string str = ini.HeartMessageFront + std::string(actor->GetName()) + ini.HeartMessageBack;
+							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.HeartMessageFront.c_str(), actor->GetName(), ini.HeartMessageBack.c_str(), locationalDmgVal);
 							fnDebug_Notification(debugMsgBuff, false, true);
 						}
 
