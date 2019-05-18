@@ -61,6 +61,11 @@ LightArmorEffectChanceMultiplier(0.6)
 
 void INIFile::Load()
 {
+	std::string iniFilePath = GetINIlFile();
+	bool fileFound = IsFoundFile(iniFilePath.c_str());
+
+	_MESSAGE("Looking for INI @ %s, file found: %d\n", iniFilePath.c_str(), (int)fileFound);
+
 	SetSettings();
 	ShowSettings();
 
