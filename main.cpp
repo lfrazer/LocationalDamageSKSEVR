@@ -463,12 +463,16 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 		//	damage *= ini.LightArmorDamageMultiplier;
 	}
 
+	// subtract offset from damage (should be -1 on mult) since in this version of the plugin, the normal base damage is still applied 
+
+	const double dmgMultOffset = 1.0;
+
 	if (actor == *g_thePlayer)
-		damage *= ini.NPCToPlayer[multiplierType];
+		damage *= (ini.NPCToPlayer[multiplierType] - dmgMultOffset);
 	else if (caster_actor == *g_thePlayer)
-		damage *= ini.PlayerToNPC[multiplierType];
+		damage *= (ini.PlayerToNPC[multiplierType] - dmgMultOffset);
 	else
-		damage *= ini.NPCToNPC[multiplierType];
+		damage *= (ini.NPCToNPC[multiplierType] - dmgMultOffset);
 
 	return (float)-damage;
 }
@@ -502,7 +506,7 @@ static double GetLocationalEffectChance(Actor* actor, BGSAttackData* attackData,
 	}
 
 	if (actor == *g_thePlayer)
-		chance *= ini.NPCToPlayer[multiplierType];
+		chance *= (ini.NPCToPlayer[multiplierType]);
 	else if (caster_actor == *g_thePlayer)
 		chance *= ini.PlayerToNPC[multiplierType];
 	else
@@ -513,10 +517,10 @@ static double GetLocationalEffectChance(Actor* actor, BGSAttackData* attackData,
 
 static void ApplyLocationalDamage(Actor* actor, UInt32 damageType, float dmg, Actor* akAggressor)
 {
-	if (dmg >= 0.0f)
+	if (dmg >= 0.0f || actor == nullptr)
 		return;
 
-	papyrusActor::DamageActorValue((*g_skyrimVM)->GetClassRegistry(), 0, akAggressor, "Health", dmg);
+	papyrusActor::DamageActorValue((*g_skyrimVM)->GetClassRegistry(), 0, actor, "Health", dmg);
 
 	/*
 	if ((damageType & 1) != 0)
@@ -765,6 +769,13 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 					}
 				}
 
+				auto GetActorName = [](Actor* actor)->const char*
+				{
+					const char* name = CALL_MEMBER_FN(actor, GetReferenceName)();
+					return name != nullptr ? name : "NULL";
+				};
+
+
 				bool done = false;
 				FoundEquipArmor equipArmor;
 				float locationalDmgVal = 0.0f;
@@ -790,8 +801,8 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 						{
-							//std::string str = ini.HeadMessageFront + std::string(actor->GetName()) + ini.HeadMessageBack;
-							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.HeadMessageFront.c_str(), actor->GetName(), ini.HeadMessageBack.c_str(), locationalDmgVal);
+							//std::string str = ini.HeadMessageFront + std::string(GetActorName(actor)) + ini.HeadMessageBack;
+							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.HeadMessageFront.c_str(), GetActorName(actor), ini.HeadMessageBack.c_str(), locationalDmgVal);
 							fnDebug_Notification(debugMsgBuff, false, true);
 						}
 
@@ -815,8 +826,8 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 						{
-							//std::string str = ini.FootMessageFront + std::string(actor->GetName()) + ini.FootMessageBack;
-							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.FootMessageFront.c_str(), actor->GetName(), ini.FootMessageBack.c_str(), locationalDmgVal);
+							//std::string str = ini.FootMessageFront + std::string(GetActorName(actor)) + ini.FootMessageBack;
+							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.FootMessageFront.c_str(), GetActorName(actor), ini.FootMessageBack.c_str(), locationalDmgVal);
 							fnDebug_Notification(debugMsgBuff, false, true);
 
 						}
@@ -841,8 +852,8 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 						{
-							//std::string str = ini.ArmsMessageFront + std::string(actor->GetName()) + ini.ArmsMessageBack;
-							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.ArmsMessageFront.c_str(), actor->GetName(), ini.ArmsMessageBack.c_str(), locationalDmgVal);
+							//std::string str = ini.ArmsMessageFront + std::string(GetActorName(actor)) + ini.ArmsMessageBack;
+							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.ArmsMessageFront.c_str(), GetActorName(actor), ini.ArmsMessageBack.c_str(), locationalDmgVal);
 							fnDebug_Notification(debugMsgBuff, false, true);
 						}
 
@@ -865,8 +876,8 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 						
 						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 						{
-							//std::string str = ini.HeartMessageFront + std::string(actor->GetName()) + ini.HeartMessageBack;
-							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.HeartMessageFront.c_str(), actor->GetName(), ini.HeartMessageBack.c_str(), locationalDmgVal);
+							//std::string str = ini.HeartMessageFront + std::string(GetActorName(actor)) + ini.HeartMessageBack;
+							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.HeartMessageFront.c_str(), GetActorName(actor), ini.HeartMessageBack.c_str(), locationalDmgVal);
 							fnDebug_Notification(debugMsgBuff, false, true);
 						}
 
