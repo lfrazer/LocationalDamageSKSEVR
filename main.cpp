@@ -18,6 +18,7 @@
 
 #include "libskyrim\BGSAttackData.h"
 
+
 #include <random>
 
 #include <shlobj.h>
@@ -347,14 +348,6 @@ struct FoundEquipArmor
 	}
 };
 
-// STub function
-static FoundEquipArmor GetEquippedArmorEx(Actor* actor, unsigned int slotMask)
-{
-	FoundEquipArmor equipArmor;
-	
-	return equipArmor;
-}
-
 /*
 static BaseExtraList* GetEquippedWeaponEx(Actor* actor, bool abLeftHand, TESForm* form)
 {
@@ -376,28 +369,43 @@ static BaseExtraList* GetEquippedWeaponEx(Actor* actor, bool abLeftHand, TESForm
 
 	return nullptr;
 }
+*/
 
 
-
-static FoundEquipArmor GetEquippedArmorEx(Actor* actor, BGSBipedObjectForm::PartFlag slotMask)
+// Loop through all equipped armors and find one that matches the slot mask given - relevant API code changed a lot in SKSE64
+static FoundEquipArmor GetEquippedArmorEx(Actor* actor, unsigned int slotMask)
 {
 	FoundEquipArmor equipArmor;
 
-	ExtraContainerChanges *exChanges = actor->extraData.GetByType<ExtraContainerChanges>();
-	if (exChanges && exChanges->changes && exChanges->changes->entryList)
+	//ExtraContainerChanges *exChanges = actor->extraData.GetByType<ExtraContainerChanges>();
+	ExtraContainerChanges* exChanges = static_cast<ExtraContainerChanges*>(actor->extraData.GetByType(kExtraData_ContainerChanges));
+	//referenceUtils::ResolveEquippedObject()
+
+	//exChanges->FindEquipped()
+	
+	//if (exChanges && exChanges->changes && exChanges->changes->entryList)
+	if(exChanges && exChanges->data && exChanges->data->objList)
 	{
-		for (InventoryEntryData *pEntry : *exChanges->changes->entryList)
+		//for (InventoryEntryData *pEntry : *exChanges->data->objList)
+		for (auto it = exChanges->data->objList->Begin(); !it.End(); ++it)
 		{
-			if (!pEntry || !pEntry->baseForm || pEntry->baseForm->formType != FormType::Armor || !pEntry->extraList)
+			InventoryEntryData* pEntry = it.Get();
+
+			if (!pEntry || !pEntry->type || pEntry->type->formType != FormType::kFormType_Armor || !pEntry->extendDataList)
 				continue;
 
-			TESObjectARMO* armor = static_cast<TESObjectARMO*>(pEntry->baseForm);
-			if (!armor->HasPartOf(slotMask))
+			TESObjectARMO* armor = static_cast<TESObjectARMO*>(pEntry->type);
+			
+			// TODO: fix slot mask filter // original def:  bool	HasPartOf(UInt32 flag) const	{ return (bipedObjectData.parts & flag) != 0; }
+			if ((armor->bipedObject.data.parts & slotMask) == 0)
 				continue;
 
-			for (BaseExtraList *pExtraDataList : *pEntry->extraList)
+			//for (BaseExtraList *pExtraDataList : *pEntry->extendDataList)
+			for (auto extraIt = pEntry->extendDataList->Begin(); !extraIt.End(); ++extraIt)
 			{
-				if (pExtraDataList && (pExtraDataList->HasType(ExtraDataType::Worn) || pExtraDataList->HasType(ExtraDataType::WornLeft)))
+
+				BaseExtraList* pExtraDataList = extraIt.Get();
+				if (pExtraDataList && (pExtraDataList->HasType(ExtraDataType::kExtraData_Worn) || pExtraDataList->HasType(ExtraDataType::kExtraData_WornLeft)))
 				{
 					equipArmor.pArmor = armor;
 					equipArmor.pExtraData = pExtraDataList;
@@ -410,7 +418,7 @@ static FoundEquipArmor GetEquippedArmorEx(Actor* actor, BGSBipedObjectForm::Part
 
 	return equipArmor;
 }
-*/
+
 
 static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObjectWEAP* weapon, Actor* caster_actor, TESObjectARMO* armor, MultiplierType multiplierType)
 {
@@ -456,11 +464,20 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 
 	if (armor)
 	{
-		// TODO: fix condition check
-		//if (armor->IsHeavyArmor())
+		
+		// original definitions:
+		//bool	IsHeavyArmor() const { return bipedObjectData.weightClass == kWeight_Heavy; }
+		//bool	IsLightArmor() const { return bipedObjectData.weightClass == kWeight_Light; }
+
+		// different dmg multipliers depending on armor weight class
+		if (armor->bipedObject.data.weightClass == BGSBipedObjectForm::kWeight_Heavy)
+		{
 			damage *= ini.HeavyArmorDamageMultiplier;
-		//else if (armor->IsLightArmor())
-		//	damage *= ini.LightArmorDamageMultiplier;
+		}
+		else if (armor->bipedObject.data.weightClass == BGSBipedObjectForm::kWeight_Light)
+		{
+			damage *= ini.LightArmorDamageMultiplier;
+		}
 	}
 
 	// subtract offset from damage (should be -1 on mult) since in this version of the plugin, the normal base damage is still applied 
