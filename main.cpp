@@ -63,6 +63,7 @@
 
 #define DAMAGEACTORVALUE_FN										0x0094A4C0
 #define PUSHACTORAWAY_FN										0x00996340
+#define DEBUGNOTIFICATION_FN									0x0096DDB0
 
 #endif
 
@@ -676,7 +677,16 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 #ifdef SKYRIMVR
 			node = (*g_thePlayer)->firstPersonSkeleton; //camera && camera->IsFirstPerson() ? g_thePlayer->firstPersonSkeleton : g_thePlayer->loadedState->node;
 #else
-			node = camera && camera->IsFirstPerson() ? (*g_thePlayer)->firstPersonSkeleton : (*g_thePlayer)->loadedState->node;
+			// original impl
+			/*	inline bool IsFirstPerson(void) const {
+		return cameraState == cameraStates[kCameraState_FirstPerson];
+	}
+	inline bool IsThirdPerson(void) const {
+		return cameraState == cameraStates[kCameraState_ThirdPerson2];
+	}
+		*/
+
+			node = camera && camera->cameraState == camera->cameraStates[PlayerCamera::kCameraState_FirstPerson] ? (*g_thePlayer)->firstPersonSkeleton : (*g_thePlayer)->loadedState->node;
 #endif
 		}
 
@@ -758,7 +768,6 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 #else
 					LookupREFRByHandle(*handle, refCaster);
-					caster_ref = refCaster
 #endif
 
 					caster_ref = (TESObjectREFR*)refCaster;
