@@ -87,6 +87,8 @@ SKSEPapyrusInterface* g_papyrus = nullptr;
 SKSEMessagingInterface* g_messaging = nullptr;
 PluginHandle g_pluginHandle = kPluginHandle_Invalid;
 
+typedef SpellItem EquippedSpellObject;
+
 int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* akTarget, NiPoint3* point, UInt32 unk1,
 	UInt32 unk2, UInt8 unk3);
 
@@ -421,7 +423,7 @@ static FoundEquipArmor GetEquippedArmorEx(Actor* actor, unsigned int slotMask)
 }
 
 
-static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObjectWEAP* weapon, Actor* caster_actor, TESObjectARMO* armor, MultiplierType multiplierType)
+static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObjectWEAP* weapon, EquippedSpellObject* spell, Projectile* projectile, Actor* caster_actor, TESObjectARMO* armor, MultiplierType multiplierType)
 {
 	double damage = 0.0;
 
@@ -455,6 +457,33 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 			}
 		}
 	}
+	else if (spell) // try to get spell damage
+	{
+		EffectSetting* effect = spell->effectTemplate;
+
+		// use half the base mana cost for now -> TODO: could be improved a lot, hard to get base spell damage
+		if (effect)
+		{
+			damage = ((double)effect->properties.baseCost * 0.5) * ini.SpellDamageMultiplier;
+		}
+
+		/*
+		// get damage from magnitude?
+		float maxSpellMagnitude = 0.0f; // equivalent to spell dmg?
+
+		for (UInt32 i = 0; i < spell->effectItemList.count; i++)
+		{
+			MagicItem::EffectItem* pEI = NULL;
+			spell->effectItemList.GetNthItem(i, pEI);
+			if (pEI)
+			{
+				maxSpellMagnitude = std::max<float>(maxSpellMagnitude, pEI->magnitude);
+			}
+		}
+
+		damage = maxSpellMagnitude;
+		*/
+	}
 	else if (caster_actor)
 	{
 		damage = caster_actor->actorValueOwner.GetCurrent(35);
@@ -486,11 +515,11 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 	const double dmgMultOffset = 1.0;
 
 	if (actor == *g_thePlayer)
-		damage *= (ini.NPCToPlayer[multiplierType] - dmgMultOffset);
+		damage *= ( std::max<double>(ini.NPCToPlayer[multiplierType], 1.0) - dmgMultOffset);
 	else if (caster_actor == *g_thePlayer)
-		damage *= (ini.PlayerToNPC[multiplierType] - dmgMultOffset);
+		damage *= (std::max<double>(ini.PlayerToNPC[multiplierType], 1.0) - dmgMultOffset);
 	else
-		damage *= (ini.NPCToNPC[multiplierType] - dmgMultOffset);
+		damage *= (std::max<double>(ini.NPCToNPC[multiplierType], 1.0) - dmgMultOffset);
 
 	return (float)-damage;
 }
@@ -717,6 +746,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 		TESObjectWEAP* weapon = nullptr; //(TESObjectWEAP*)((UInt32*)stack[9])[10];
 		Projectile* projectile = akProjectile; //(Projectile*)((UInt32*)stack[9])[32];
 		TESObjectREFR* caster = nullptr; //(TESObjectREFR*)((UInt32*)stack[9])[35];
+		EquippedSpellObject* spell = nullptr; // NEW: Try to track equipped spell used to shoot projectile
 
 		int hitNode = -1;
 		float scale = CALL_MEMBER_FN(actor, GetBaseScale)(); //actor->GetScale();
@@ -781,17 +811,34 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 				if (caster_ref)
 					caster_actor = DYNAMIC_CAST(caster_ref, TESObjectREFR, Actor);
 
-				// try to get a weapon from either hand...
+				// check if we have valid castor actor
 				if (caster_actor)
 				{
-					TESForm* equippedForm = caster_actor->GetEquippedObject(false);
-					weapon = DYNAMIC_CAST(equippedForm, TESForm, TESObjectWEAP);
-					
-					// try the other hand too
-					if (!weapon)
+
+					// IF this was an arrow projectile, try to get weapon
+					if (akProjectile->formType == kFormType_Arrow)
 					{
-						equippedForm = caster_actor->GetEquippedObject(true);
+						TESForm* equippedForm = caster_actor->GetEquippedObject(false);
 						weapon = DYNAMIC_CAST(equippedForm, TESForm, TESObjectWEAP);
+
+						// try the other hand too
+						if (!weapon)
+						{
+							equippedForm = caster_actor->GetEquippedObject(true);
+							weapon = DYNAMIC_CAST(equippedForm, TESForm, TESObjectWEAP);
+						}
+					}
+					else // otherwise this should be a spell cast
+					{
+						// at this point we just guess and hope we grab the right spell (TODO: this could be improved a lot)
+						TESForm* equippedForm = caster_actor->GetEquippedObject(false);
+						spell = DYNAMIC_CAST(equippedForm, TESForm, SpellItem);
+
+						if (!spell)
+						{
+							TESForm* equippedForm = caster_actor->GetEquippedObject(true);
+							spell = DYNAMIC_CAST(equippedForm, TESForm, SpellItem);
+						}
 					}
 				}
 
@@ -799,6 +846,24 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 				{
 					const char* name = CALL_MEMBER_FN(actor, GetReferenceName)();
 					return name != nullptr ? name : "NULL";
+				};
+
+				auto GetProjectileType = [](Projectile* proj)->const char*
+				{
+					if (proj->formType == kFormType_Arrow)
+					{
+						return "Arrow";
+					}
+					else
+					{
+						return "Spell";
+					}
+				};
+
+				// TODO
+				auto GetProjectileName = [](Projectile* proj)->const char*
+				{
+					return "";
 				};
 
 
@@ -821,14 +886,14 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 						if (ini.DamageTypeHead != 0)
 						{
-							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_HeadDamageMultiplier);
+							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, spell, projectile, caster_actor, equipArmor.pArmor, Type_HeadDamageMultiplier);
 							ApplyLocationalDamage(actor, ini.DamageTypeHead, locationalDmgVal, caster_actor);
 						}
 
 						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 						{
 							//std::string str = ini.HeadMessageFront + std::string(GetActorName(actor)) + ini.HeadMessageBack;
-							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.HeadMessageFront.c_str(), GetActorName(actor), ini.HeadMessageBack.c_str(), locationalDmgVal);
+							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f (%s)\n", ini.HeadMessageFront.c_str(), GetActorName(actor), ini.HeadMessageBack.c_str(), locationalDmgVal, GetProjectileType(projectile));
 							fnDebug_Notification(debugMsgBuff, false, true);
 						}
 
@@ -846,14 +911,14 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 						if (ini.DamageTypeFoot != 0)
 						{
-							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_FootDamageMultiplier);
+							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, spell, projectile, caster_actor, equipArmor.pArmor, Type_FootDamageMultiplier);
 							ApplyLocationalDamage(actor, ini.DamageTypeFoot, locationalDmgVal, caster_actor);
 						}
 
 						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 						{
 							//std::string str = ini.FootMessageFront + std::string(GetActorName(actor)) + ini.FootMessageBack;
-							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.FootMessageFront.c_str(), GetActorName(actor), ini.FootMessageBack.c_str(), locationalDmgVal);
+							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f (%s)\n", ini.FootMessageFront.c_str(), GetActorName(actor), ini.FootMessageBack.c_str(), locationalDmgVal, GetProjectileType(projectile));
 							fnDebug_Notification(debugMsgBuff, false, true);
 
 						}
@@ -872,14 +937,14 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 						if (ini.DamageTypeArms != 0)
 						{
-							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_ArmsDamageMultiplier);
+							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, spell, projectile, caster_actor, equipArmor.pArmor, Type_ArmsDamageMultiplier);
 							ApplyLocationalDamage(actor, ini.DamageTypeArms, locationalDmgVal, caster_actor);
 						}
 
 						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 						{
 							//std::string str = ini.ArmsMessageFront + std::string(GetActorName(actor)) + ini.ArmsMessageBack;
-							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.ArmsMessageFront.c_str(), GetActorName(actor), ini.ArmsMessageBack.c_str(), locationalDmgVal);
+							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f (%s)\n", ini.ArmsMessageFront.c_str(), GetActorName(actor), ini.ArmsMessageBack.c_str(), locationalDmgVal, GetProjectileType(projectile));
 							fnDebug_Notification(debugMsgBuff, false, true);
 						}
 
@@ -896,14 +961,14 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 						if (ini.DamageTypeHeart != 0)
 						{
-							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, caster_actor, equipArmor.pArmor, Type_HeartDamageMultiplier);
+							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, spell, projectile, caster_actor, equipArmor.pArmor, Type_HeartDamageMultiplier);
 							ApplyLocationalDamage(actor, ini.DamageTypeHeart, locationalDmgVal, caster_actor);
 						}
 						
 						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 						{
 							//std::string str = ini.HeartMessageFront + std::string(GetActorName(actor)) + ini.HeartMessageBack;
-							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f\n", ini.HeartMessageFront.c_str(), GetActorName(actor), ini.HeartMessageBack.c_str(), locationalDmgVal);
+							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f (%s)\n", ini.HeartMessageFront.c_str(), GetActorName(actor), ini.HeartMessageBack.c_str(), locationalDmgVal, GetProjectileType(projectile));
 							fnDebug_Notification(debugMsgBuff, false, true);
 						}
 

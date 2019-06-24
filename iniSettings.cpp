@@ -37,6 +37,8 @@ LightArmorEffectChanceMultiplier(0.6)
 	GeneralMap["DisplayImpactEffect"] = 1;
 	GeneralMap["DisplayNotification"] = 1;
 
+	GeneralMap["SpellDamageMultiplier"] = 1;
+
 	MessageMap["HeadMessageFront"] = "Head: ";
 	MessageMap["HeadMessageBack"] = "";
 	MessageMap["ArmsMessageFront"] = "Arm: ";
@@ -271,6 +273,12 @@ void INIFile::SetINIData(std::vector<std::string> *list)
 				std::string value = vec.at(1);
 				EraseIf(value, "\"");
 				MessageMap.at("HeartMessageBack") = HeartMessageBack = value;
+			}
+			else if (key == "SpellDamageMultiplier")
+			{
+				double value = std::atof(vec.at(1).c_str());
+				SpellDamageMultiplier = value;
+				GeneralMap.at("SpellDamageMultiplier") = (UInt32)(value * 100.0);
 			}
 			else
 			{

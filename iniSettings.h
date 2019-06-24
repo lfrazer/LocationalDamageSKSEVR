@@ -62,6 +62,9 @@ public:
 	double HeavyArmorEffectChanceMultiplier;
 	double LightArmorEffectChanceMultiplier;
 
+	// NEW ini setting for spells
+	double SpellDamageMultiplier = 0.0;
+
 	double PlayerToNPC[Type_Num];
 	double NPCToPlayer[Type_Num];
 	double NPCToNPC[Type_Num];
