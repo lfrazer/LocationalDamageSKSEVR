@@ -459,6 +459,7 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 	}
 	else if (spell) // try to get spell damage
 	{
+		/*
 		EffectSetting* effect = spell->effectTemplate;
 
 		// use half the base mana cost for now -> TODO: could be improved a lot, hard to get base spell damage
@@ -466,10 +467,25 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 		{
 			damage = ((double)effect->properties.baseCost * 0.5) * ini.SpellDamageMultiplier;
 		}
+		*/
 
-		/*
+		
 		// get damage from magnitude?
-		float maxSpellMagnitude = 0.0f; // equivalent to spell dmg?
+
+		auto FindDamageEffect = [](MagicItem::EffectItem* pEI)->float
+		{
+			float dmgOut = 0.0f;
+			const int numKeywords = pEI->mgef->keywordForm.numKeywords;
+			for (int i = 0; i < numKeywords; ++i)
+			{
+				if (strstr(pEI->mgef->keywordForm.keywords[i]->keyword.c_str(), "Damage") != nullptr)
+				{
+					dmgOut = pEI->magnitude;
+					return dmgOut;
+				}
+			}
+			return dmgOut;
+		};
 
 		for (UInt32 i = 0; i < spell->effectItemList.count; i++)
 		{
@@ -477,12 +493,18 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 			spell->effectItemList.GetNthItem(i, pEI);
 			if (pEI)
 			{
-				maxSpellMagnitude = std::max<float>(maxSpellMagnitude, pEI->magnitude);
+				if (pEI->mgef)
+				{
+					damage = (double)FindDamageEffect(pEI);
+					if (damage > 0.0)
+					{
+						break;
+					}
+				}
 			}
 		}
 
-		damage = maxSpellMagnitude;
-		*/
+		
 	}
 	else if (caster_actor)
 	{
