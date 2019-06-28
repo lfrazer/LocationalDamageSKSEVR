@@ -422,6 +422,47 @@ static FoundEquipArmor GetEquippedArmorEx(Actor* actor, unsigned int slotMask)
 	return equipArmor;
 }
 
+static float GetSpellDamage(SpellItem* spell)
+{
+	// get damage from magnitude
+
+	auto FindDamageEffect = [](MagicItem::EffectItem* pEI)->float
+	{
+		float dmgOut = 0.0f;
+		const int numKeywords = pEI->mgef->keywordForm.numKeywords;
+		for (int i = 0; i < numKeywords; ++i)
+		{
+			if (strstr(pEI->mgef->keywordForm.keywords[i]->keyword.c_str(), "Damage") != nullptr)
+			{
+				dmgOut = pEI->magnitude;
+				return dmgOut;
+			}
+		}
+		return dmgOut;
+	};
+
+	float damage = 0.0f;
+
+	for (UInt32 i = 0; i < spell->effectItemList.count; i++)
+	{
+		MagicItem::EffectItem* pEI = NULL;
+		spell->effectItemList.GetNthItem(i, pEI);
+		if (pEI)
+		{
+			if (pEI->mgef)
+			{
+				damage = FindDamageEffect(pEI);
+				if (damage > 0.0)
+				{
+					break;
+				}
+			}
+		}
+	}
+
+	return damage;
+}
+
 
 static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObjectWEAP* weapon, EquippedSpellObject* spell, Projectile* projectile, Actor* caster_actor, TESObjectARMO* armor, MultiplierType multiplierType)
 {
@@ -459,51 +500,10 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 	}
 	else if (spell) // try to get spell damage
 	{
-		/*
-		EffectSetting* effect = spell->effectTemplate;
 
-		// use half the base mana cost for now -> TODO: could be improved a lot, hard to get base spell damage
-		if (effect)
-		{
-			damage = ((double)effect->properties.baseCost * 0.5) * ini.SpellDamageMultiplier;
-		}
-		*/
+		damage = GetSpellDamage(spell);
 
-		
-		// get damage from magnitude?
-
-		auto FindDamageEffect = [](MagicItem::EffectItem* pEI)->float
-		{
-			float dmgOut = 0.0f;
-			const int numKeywords = pEI->mgef->keywordForm.numKeywords;
-			for (int i = 0; i < numKeywords; ++i)
-			{
-				if (strstr(pEI->mgef->keywordForm.keywords[i]->keyword.c_str(), "Damage") != nullptr)
-				{
-					dmgOut = pEI->magnitude;
-					return dmgOut;
-				}
-			}
-			return dmgOut;
-		};
-
-		for (UInt32 i = 0; i < spell->effectItemList.count; i++)
-		{
-			MagicItem::EffectItem* pEI = NULL;
-			spell->effectItemList.GetNthItem(i, pEI);
-			if (pEI)
-			{
-				if (pEI->mgef)
-				{
-					damage = (double)FindDamageEffect(pEI);
-					if (damage > 0.0)
-					{
-						break;
-					}
-				}
-			}
-		}
-
+		damage = damage * ini.SpellDamageMultiplier;
 		
 	}
 	else if (caster_actor)
@@ -856,7 +856,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 						TESForm* equippedForm = caster_actor->GetEquippedObject(false);
 						spell = DYNAMIC_CAST(equippedForm, TESForm, SpellItem);
 
-						if (!spell)
+						if (!spell || GetSpellDamage(spell) <= 0.0f) // if right hand was not a spell OR the spell damage was 0, try left hand
 						{
 							TESForm* equippedForm = caster_actor->GetEquippedObject(true);
 							spell = DYNAMIC_CAST(equippedForm, TESForm, SpellItem);
