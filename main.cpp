@@ -208,7 +208,7 @@ extern "C" {
 #ifdef SKYRIMVR
 		else if (skse->runtimeVersion != RUNTIME_VR_VERSION_1_4_15)
 #else
-		else if (skse->runtimeVersion != RUNTIME_VERSION_1_5_73)
+		else if (skse->runtimeVersion != RUNTIME_VERSION_1_5_73 && skse->runtimeVersion != RUNTIME_VERSION_1_5_80)
 #endif
 		{
 			_MESSAGE("unsupported runtime version %08X", skse->runtimeVersion);
@@ -262,7 +262,7 @@ std::unordered_map<std::string, std::vector<Pair>> locationalNodeMap = {
 { "actors\\ambient\\chicken\\chickenproject.hkx",{} },
 { "actors\\mudcrab\\mudcrabproject.hkx",{} },
 { "actors\\dlc02\\netch\netchproject.hkx",{} },
-{ "actors\\dragon\\dragonproject.hkx",{} },
+{ "actors\\dragon\\dragonproject.hkx",{ { "NPC Head", 40 } } },
 { "actors\\canine\\dogproject.hkx",{ { "Canine_JawBone", 20 },{ "Canine_RBackLeg2", 15 },{ "Canine_LBackLeg2", 15 },{ "Canine_RFrontLeg2", 15 },{ "Canine_LFrontLeg2", 15 },{ "Canine_Ribcage", 20 } } },
 { "actors\\canine\\wolfproject.hkx",{ { "Canine_JawBone", 20 },{ "Canine_RBackLeg2", 15 },{ "Canine_LBackLeg2", 15 },{ "Canine_RFrontLeg2", 15 },{ "Canine_LFrontLeg2", 15 },{ "Canine_Ribcage", 20 } } },
 { "actors\\falmer\\falmerproject.hkx",{ { "NPC Head", 20 },{ "NPC R Calf", 20 },{ "NPC L Calf", 20 },{ "NPC R Forearm", 20 },{ "NPC L Forearm", 20 },{ "NPC Spine2", 20 } } },
