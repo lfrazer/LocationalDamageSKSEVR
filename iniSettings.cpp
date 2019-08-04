@@ -36,6 +36,7 @@ LightArmorEffectChanceMultiplier(0.6)
 
 	GeneralMap["DisplayImpactEffect"] = 1;
 	GeneralMap["DisplayNotification"] = 1;
+	GeneralMap["DisplayNotificationMinDamage"] = 1;
 
 	GeneralMap["SpellDamageMultiplier"] = 1;
 
@@ -225,6 +226,12 @@ void INIFile::SetINIData(std::vector<std::string> *list)
 					GeneralMap.at("DisplayNotification") = 0;
 					DisplayNotification = false;
 				}
+			}
+			else if (key == "DisplayNotificationMinDamage")
+			{
+				int value = std::atoi(vec.at(1).c_str());
+				GeneralMap.at("DisplayNotificationMinDamage") = value;
+				DisplayNotificationMinDamage = value;
 			}
 			else if (key == "HeadMessageFront")
 			{

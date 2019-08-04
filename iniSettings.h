@@ -47,6 +47,7 @@ public:
 
 	bool DisplayImpactEffect;
 	bool DisplayNotification;
+	int DisplayNotificationMinDamage = 1;
 
 	std::string HeadMessageFront;
 	std::string HeadMessageBack;

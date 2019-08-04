@@ -888,11 +888,22 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 					return "";
 				};
 
+				// Print on screen / debug notifications about locational damage
+				auto DoNotificationConditional = [&](const char* msgFront, const char* msgBack, float dmgVal)
+				{
+					dmgVal = fabsf(dmgVal); // dmg value is usually negative but we want to print the absolute val
+					if (ini.DisplayNotification && dmgVal >= (float)ini.DisplayNotificationMinDamage && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
+					{
+						static char sMsgBuff[1024] = { 0 }; // static because I'm cautious about putting much on the stack of unknown size (I don't know what the game is doing with the stack)
+						sprintf_s(sMsgBuff, "%s %s %s Damage: %f (%s)\n", msgFront, GetActorName(actor), msgBack, dmgVal, GetProjectileType(projectile));
+						fnDebug_Notification(sMsgBuff, false, true);
+					}
+				};
+
 
 				bool done = false;
 				FoundEquipArmor equipArmor;
 				float locationalDmgVal = 0.0f;
-				static char debugMsgBuff[2048] = { 0 };
 
 				switch (hitNode)
 				{
@@ -912,13 +923,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 							ApplyLocationalDamage(actor, ini.DamageTypeHead, locationalDmgVal, caster_actor);
 						}
 
-						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
-						{
-							//std::string str = ini.HeadMessageFront + std::string(GetActorName(actor)) + ini.HeadMessageBack;
-							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f (%s)\n", ini.HeadMessageFront.c_str(), GetActorName(actor), ini.HeadMessageBack.c_str(), locationalDmgVal, GetProjectileType(projectile));
-							fnDebug_Notification(debugMsgBuff, false, true);
-						}
-
+						DoNotificationConditional(ini.HeadMessageFront.c_str(), ini.HeadMessageBack.c_str(), locationalDmgVal);
 						done = true;
 					}
 					break;
@@ -937,14 +942,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 							ApplyLocationalDamage(actor, ini.DamageTypeFoot, locationalDmgVal, caster_actor);
 						}
 
-						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
-						{
-							//std::string str = ini.FootMessageFront + std::string(GetActorName(actor)) + ini.FootMessageBack;
-							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f (%s)\n", ini.FootMessageFront.c_str(), GetActorName(actor), ini.FootMessageBack.c_str(), locationalDmgVal, GetProjectileType(projectile));
-							fnDebug_Notification(debugMsgBuff, false, true);
-
-						}
-
+						DoNotificationConditional(ini.FootMessageFront.c_str(), ini.FootMessageBack.c_str(), locationalDmgVal);
 						done = true;
 					}
 					break;
@@ -963,13 +961,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 							ApplyLocationalDamage(actor, ini.DamageTypeArms, locationalDmgVal, caster_actor);
 						}
 
-						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
-						{
-							//std::string str = ini.ArmsMessageFront + std::string(GetActorName(actor)) + ini.ArmsMessageBack;
-							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f (%s)\n", ini.ArmsMessageFront.c_str(), GetActorName(actor), ini.ArmsMessageBack.c_str(), locationalDmgVal, GetProjectileType(projectile));
-							fnDebug_Notification(debugMsgBuff, false, true);
-						}
-
+						DoNotificationConditional(ini.ArmsMessageFront.c_str(), ini.ArmsMessageBack.c_str(), locationalDmgVal);
 						done = true;
 					}
 					break;
@@ -987,13 +979,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 							ApplyLocationalDamage(actor, ini.DamageTypeHeart, locationalDmgVal, caster_actor);
 						}
 						
-						if (ini.DisplayNotification && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
-						{
-							//std::string str = ini.HeartMessageFront + std::string(GetActorName(actor)) + ini.HeartMessageBack;
-							sprintf_s(debugMsgBuff, "%s %s %s dmgVal = %f (%s)\n", ini.HeartMessageFront.c_str(), GetActorName(actor), ini.HeartMessageBack.c_str(), locationalDmgVal, GetProjectileType(projectile));
-							fnDebug_Notification(debugMsgBuff, false, true);
-						}
-
+						DoNotificationConditional(ini.HeartMessageFront.c_str(), ini.HeartMessageBack.c_str(), locationalDmgVal);
 						done = true;
 					}
 					break;
