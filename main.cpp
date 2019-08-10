@@ -305,7 +305,7 @@ void fnDebug_Notification(const char* str, bool flag1, bool flag2)
 }
 
 
-static bool Probability(double value)
+static bool Probability(float value)
 {
 	static std::random_device rd;
 	static std::mt19937 mt(rd());
@@ -466,7 +466,7 @@ static float GetSpellDamage(SpellItem* spell)
 
 static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObjectWEAP* weapon, EquippedSpellObject* spell, Projectile* projectile, Actor* caster_actor, TESObjectARMO* armor, MultiplierType multiplierType)
 {
-	double damage = 0.0;
+	float damage = 0.0;
 
 	if (weapon && (!attackData || !attackData->flags.ignoreWeapon))
 	{
@@ -474,6 +474,8 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 
 		if (caster_actor)
 		{
+			const float inv100 = 1.0f / 100.f;
+
 			switch (weapon->type())
 			{
 			case TESObjectWEAP::GameData::kType_HandToHandMelee:
@@ -483,15 +485,15 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 			case TESObjectWEAP::GameData::kType_OneHandDagger:
 			case TESObjectWEAP::GameData::kType_OneHandAxe:
 			case TESObjectWEAP::GameData::kType_OneHandMace:
-				damage *= 1.0 + caster_actor->actorValueOwner.GetCurrent(6) * 0.5 / 100.0; //caster_actor->GetActorValueCurrent(6) * 0.5 / 100.0;
+				damage *= 1.0 + caster_actor->actorValueOwner.GetCurrent(6) * 0.5f * inv100; //caster_actor->GetActorValueCurrent(6) * 0.5 / 100.0;
 				break;
 			case TESObjectWEAP::GameData::kType_TwoHandSword:
 			case TESObjectWEAP::GameData::kType_TwoHandAxe:
-				damage *= 1.0 + caster_actor->actorValueOwner.GetCurrent(7) * 0.5 / 100.0;
+				damage *= 1.0 + caster_actor->actorValueOwner.GetCurrent(7) * 0.5 * inv100;
 				break;
 			case TESObjectWEAP::GameData::kType_Bow:
 			case TESObjectWEAP::GameData::kType_CrossBow:
-				damage *= 1.0 + caster_actor->actorValueOwner.GetCurrent(8) * 0.5 / 100.0; 
+				damage *= 1.0 + caster_actor->actorValueOwner.GetCurrent(8) * 0.5 * inv100; 
 				break;
 			default:
 				break;
@@ -534,7 +536,7 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 
 	// subtract offset from damage (should be -1 on mult) since in this version of the plugin, the normal base damage is still applied 
 
-	const double dmgMultOffset = 1.0;
+	const float dmgMultOffset = 1.0;
 
 	if (actor == *g_thePlayer)
 		damage *= ( std::max<double>(ini.NPCToPlayer[multiplierType], 1.0) - dmgMultOffset);
@@ -546,23 +548,26 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 	return (float)-damage;
 }
 
-static double GetLocationalEffectChance(Actor* actor, BGSAttackData* attackData, TESObjectWEAP* weapon, Actor* caster_actor, TESObjectARMO* armor, MultiplierType multiplierType)
+static float GetLocationalEffectChance(Actor* actor, BGSAttackData* attackData, TESObjectWEAP* weapon, Actor* caster_actor, TESObjectARMO* armor, MultiplierType multiplierType)
 {
-	double chance = 1.0;
+	const float inv30 = 1.0f / 30.0f;
+	float chance = 1.0;
 
 	if (weapon && (!attackData || !attackData->flags.ignoreWeapon))
-		chance *= 1.0 + weapon->weight.weight / 30.0;
+	{
+		chance *= 1.0 + weapon->weight.weight * inv30;
+	}
 
 	if (caster_actor)
 	{
 		// NOTE: This seems to be a bug in the orignal ver (max - max)
-		//double difference = (caster_actor->GetActorValueMaximum(24) - actor->GetActorValueMaximum(24)) * 0.00014;
-		double difference = caster_actor->actorValueOwner.GetMaximum(24) - caster_actor->actorValueOwner.GetBase(24) * 0.00014;
-		if (difference < -0.7)
-			difference = -0.7;
-		else if (difference > 0.7)
-			difference = 0.7;
-		chance *= 1.0 + difference;
+		//float difference = (caster_actor->GetActorValueMaximum(24) - actor->GetActorValueMaximum(24)) * 0.00014;
+		float difference = caster_actor->actorValueOwner.GetMaximum(24) - caster_actor->actorValueOwner.GetBase(24) * 0.00014;
+		if (difference < -0.7f)
+			difference = -0.7f;
+		else if (difference > 0.7f)
+			difference = 0.7f;
+		chance *= 1.0f + difference;
 	}
 
 	if (armor)
@@ -603,9 +608,9 @@ static void ApplyLocationalDamage(Actor* actor, UInt32 damageType, float dmg, Ac
 	*/
 }
 
-static void ApplyLocationalEffect(Actor* actor, UInt32 effectType, double chance, FoundEquipArmor equipArmor, std::string pathString)
+static void ApplyLocationalEffect(Actor* actor, UInt32 effectType, float chance, FoundEquipArmor equipArmor, std::string pathString)
 {
-	if (chance <= 0.0)
+	if (chance <= 0.0f)
 		return;
 
 	// TODO: implement later
@@ -677,7 +682,7 @@ static void ApplyLocationalEffect(Actor* actor, UInt32 effectType, double chance
 		{
 
 #ifdef SKYRIMVR
-			LookupREFRByHandle(handle, &refCaster); // SKSE_VR takes handle ptr here, not ref? - also 2nd arg is double ptr not NiPointer template
+			LookupREFRByHandle(handle, &refCaster); // SKSE_VR takes handle ptr here, not ref? - also 2nd arg is float ptr not NiPointer template
 #else
 			LookupREFRByHandle(*handle, refCaster);
 #endif
@@ -785,10 +790,10 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 				//NiPoint3 node_pos = obj->GetWorldTranslate();  // TODO: figure out how to get this..
 				NiPoint3 node_pos = obj->m_worldTransform.pos;
 
-				double dx = hit_pos->x - node_pos.x;
-				double dy = hit_pos->y - node_pos.y;
-				double dz = hit_pos->z - node_pos.z;
-				double d2 = dx * dx + dy * dy + dz * dz;
+				const float dx = hit_pos->x - node_pos.x;
+				const float dy = hit_pos->y - node_pos.y;
+				const float dz = hit_pos->z - node_pos.z;
+				const float d2 = dx * dx + dy * dy + dz * dz;
 
 				if (d2 < nodeNames[i].second * scale * nodeNames[i].second * scale)
 				{
@@ -816,7 +821,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 				{
 
 #ifdef SKYRIMVR
-					LookupREFRByHandle(handle, &refCaster); // SKSE_VR takes handle ptr here, not ref? - also 2nd arg is double ptr not NiPointer template
+					LookupREFRByHandle(handle, &refCaster); // SKSE_VR takes handle ptr here, not ref? - also 2nd arg is ptr to ptr (**) not NiPointer template
 
 #else
 					LookupREFRByHandle(*handle, refCaster);
