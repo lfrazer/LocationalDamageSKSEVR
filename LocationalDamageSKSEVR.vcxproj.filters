@@ -36,6 +36,9 @@
     <ClInclude Include="libskyrim\CRC.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="damagetracker.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="iniSettings.cpp">
@@ -45,6 +48,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="damagetracker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

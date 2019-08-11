@@ -10,7 +10,10 @@
 #include <skse64/GameExtraData.h>
 #include <skse64/NiNodes.h>
 #include <skse64/GameCamera.h>
+#include <skse64/GameTypes.h>
+#include <skse64/PapyrusEvents.h>
 #include <skse64/PapyrusVM.h>
+
 #include "skse64_common/skse_version.h"
 #include "skse64_common/Relocation.h"
 #include "skse64_common/SafeWrite.h"
@@ -29,6 +32,7 @@
 #include "skse64_common/BranchTrampoline.h"
 
 #include "iniSettings.h"
+#include "damagetracker.h"
 
 //class Actor
 //DEFINE_MEMBER_FN(DamageActorValue, void, 0x006E0760, UInt32 unk1, UInt32 actorValueID, float damage, Actor* akAggressor);
@@ -75,17 +79,22 @@ RelocAddr<uintptr_t> OnProjectileHitHookLocation(ONPROJECTILEHIT_HOOKLOCATION);
 typedef UInt32*(*_GetActorCause)(TESObjectREFR* refr);
 RelocAddr<_GetActorCause> Projectile_GetActorCauseFn(PROJECTILE_GETACTORCAUSEFN);
 
-// Won't work like this.. we need to create our own actor class probably
-/*
-MEMBER_FN_PREFIX(Actor);
-DEFINE_MEMBER_FN(DamageActorValue, void, DAMAGEACTORVALUE_FN, UInt32 unk1, UInt32 actorValueID, float damage, Actor* akAggressor);
-DEFINE_MEMBER_FN(PushActorAway, void, PUSHACTORAWAY_FN, Actor* actor, float x, float y, float z, float force);
-*/
+
+class SKSEPlayerActionEvent : public BSTEventSink <SKSEActionEvent>
+{
+public:
+	virtual	EventResult ReceiveEvent(SKSEActionEvent * evn, EventDispatcher<SKSEActionEvent> * dispatcher);
+};
+
 
 // globals
 SKSEPapyrusInterface* g_papyrus = nullptr;
 SKSEMessagingInterface* g_messaging = nullptr;
 PluginHandle g_pluginHandle = kPluginHandle_Invalid;
+
+EventDispatcher<SKSEActionEvent>* g_skseActionEventDispatcher;
+SKSEPlayerActionEvent	g_PlayerActionEvent;
+CDamageTracker			g_DamageTracker;
 
 typedef SpellItem EquippedSpellObject;
 
@@ -151,7 +160,7 @@ void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 	switch (msg->type)
 	{
 	case SKSEMessagingInterface::kMessage_DataLoaded:
-
+	{
 		ini.Load();
 
 		if (!g_branchTrampoline.Create(1024 * 64))
@@ -173,8 +182,16 @@ void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 		g_branchTrampoline.Write6Branch(OnProjectileHitHookLocation.GetUIntPtr(), uintptr_t(code.getCode()));
 
 		_MESSAGE("Code hooked successfully!");
-
 		break;
+	}
+	case SKSEMessagingInterface::kMessage_InputLoaded:
+	{
+		void * dispatchPtr = g_messaging->GetEventDispatcher(SKSEMessagingInterface::kDispatcher_ActionEvent);
+		g_skseActionEventDispatcher = (EventDispatcher<SKSEActionEvent>*)dispatchPtr;
+
+		g_skseActionEventDispatcher->AddEventSink(&g_PlayerActionEvent);
+		break;
+	}
 	}
 }
 
@@ -422,53 +439,25 @@ static FoundEquipArmor GetEquippedArmorEx(Actor* actor, unsigned int slotMask)
 	return equipArmor;
 }
 
-static float GetSpellDamage(SpellItem* spell)
-{
-	// get damage from magnitude
-
-	auto FindDamageEffect = [](MagicItem::EffectItem* pEI)->float
-	{
-		float dmgOut = 0.0f;
-		const int numKeywords = pEI->mgef->keywordForm.numKeywords;
-		for (int i = 0; i < numKeywords; ++i)
-		{
-			if (strstr(pEI->mgef->keywordForm.keywords[i]->keyword.c_str(), "Damage") != nullptr)
-			{
-				dmgOut = pEI->magnitude;
-				return dmgOut;
-			}
-		}
-		return dmgOut;
-	};
-
-	float damage = 0.0f;
-
-	for (UInt32 i = 0; i < spell->effectItemList.count; i++)
-	{
-		MagicItem::EffectItem* pEI = NULL;
-		spell->effectItemList.GetNthItem(i, pEI);
-		if (pEI)
-		{
-			if (pEI->mgef)
-			{
-				damage = FindDamageEffect(pEI);
-				if (damage > 0.0)
-				{
-					break;
-				}
-			}
-		}
-	}
-
-	return damage;
-}
-
 
 static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObjectWEAP* weapon, EquippedSpellObject* spell, Projectile* projectile, Actor* caster_actor, TESObjectARMO* armor, MultiplierType multiplierType)
 {
 	float damage = 0.0;
 
-	if (weapon && (!attackData || !attackData->flags.ignoreWeapon))
+	const CDamageEntry* dmgEntry = g_DamageTracker.LookupDamageEntry(projectile);
+
+	// if we have a damage entry, get tracked stats from when the attack was launched (new feature)
+	// this should fix a few issues where the user uses 2 destruction spells and increase compatibility with FEC / Spellsiphon potentially
+	if (dmgEntry)
+	{
+		damage = dmgEntry->mDamage;
+
+		if (dmgEntry->mIsSpell)
+		{
+			damage = damage * ini.SpellDamageMultiplier;
+		}
+	}
+	else if (weapon && (!attackData || !attackData->flags.ignoreWeapon))
 	{
 		damage = weapon->damage.GetAttackDamage(); // weapon->damage.attackDamage  might be safer
 
@@ -1004,5 +993,54 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 	}
 
 	return OnProjectileHitFunction(akProjectile, akTarget, point, unk1, unk2, unk3);
+}
+
+
+EventResult SKSEPlayerActionEvent::ReceiveEvent(SKSEActionEvent * evn, EventDispatcher<SKSEActionEvent> * dispatcher)
+{
+	auto player = DYNAMIC_CAST(LookupFormByID(0x14), TESForm, Actor);
+
+	auto GetCorrectSpellBySlot = [player](int slot)->SpellItem*
+	{
+		// TODO: left hand mode
+		if (slot == SKSEActionEvent::kSlot_Left)
+		{
+			return player->leftHandSpell;
+		}
+		
+		return player->rightHandSpell;
+	};
+
+	if (evn->actor == player)
+	{
+
+		if (evn->type == SKSEActionEvent::kType_SpellCast)
+		{
+			SpellItem* spell = GetCorrectSpellBySlot(evn->slot);
+			if (spell)
+			{
+				g_DamageTracker.RegisterAttack(spell);
+			}
+		}
+		else if (evn->type == SKSEActionEvent::kType_BowRelease)
+		{
+			TESForm* equippedForm = player->GetEquippedObject(false);
+			TESObjectWEAP* weapon = DYNAMIC_CAST(equippedForm, TESForm, TESObjectWEAP);
+
+			// try the other hand too
+			if (!weapon)
+			{
+				equippedForm = player->GetEquippedObject(true);
+				weapon = DYNAMIC_CAST(equippedForm, TESForm, TESObjectWEAP);
+			}
+
+			if (weapon)
+			{
+				g_DamageTracker.RegisterAttack(weapon);
+			}
+		}
+	}
+
+	return EventResult::kEvent_Continue;
 }
 
