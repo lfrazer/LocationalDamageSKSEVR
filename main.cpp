@@ -22,6 +22,11 @@
 
 #include "libskyrim\BGSAttackData.h"
 
+// Papyrus VR / SkyrimVRTools includes
+#include "api/PapyrusVRTypes.h"
+#include "api/OpenVRTypes.h"
+#include "api/openvr.h"
+#include "api/VRHookAPI.h"
 
 #include <random>
 
@@ -92,6 +97,7 @@ public:
 SKSEPapyrusInterface* g_papyrus = nullptr;
 SKSEMessagingInterface* g_messaging = nullptr;
 PluginHandle g_pluginHandle = kPluginHandle_Invalid;
+PapyrusVRAPI*	g_papyrusvr = nullptr;
 
 EventDispatcher<SKSEActionEvent>* g_skseActionEventDispatcher;
 SKSEPlayerActionEvent	g_PlayerActionEvent;
@@ -157,12 +163,56 @@ namespace papyrusStatic
 	RelocAddr<_DebugNotification> DebugNotifcation(DEBUGNOTIFICATION_FN);
 }
 
+// Legacy API event handler
+void OnVRButtonEvent(PapyrusVR::VREventType type, PapyrusVR::EVRButtonId buttonId, PapyrusVR::VRDevice deviceId)
+{
+	// Use button presses here
+	if (type == PapyrusVR::VREventType_Pressed)
+	{
+		//_MESSAGE("VR Button press deviceId: %d buttonId: %d", deviceId, buttonId);
+
+		//g_quickslotMgr->ButtonPress(buttonId, deviceId);
+	}
+	else if (type == PapyrusVR::VREventType_Released)
+	{
+		//g_quickslotMgr->ButtonRelease(buttonId, deviceId);
+	}
+}
+
+//Listener for PapyrusVR Messages
+void OnPapyrusVRMessage(SKSEMessagingInterface::Message* msg)
+{
+	if (msg)
+	{
+		if (msg->type == kPapyrusVR_Message_Init && msg->data)
+		{
+			_MESSAGE("PapyrusVR Init Message received with valid data, waiting for init.");
+			g_papyrusvr = (PapyrusVRAPI*)msg->data;
+
+		}
+	}
+}
+
 void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 {
 	switch (msg->type)
 	{
+	case SKSEMessagingInterface::kMessage_PostLoad:
+	{
+		_MESSAGE("SKSE PostLoad message received, registering for PapyrusVR messages from SkyrimVRTools");  // This log msg may happen before XML is loaded
+		g_messaging->RegisterListener(g_pluginHandle, "SkyrimVRTools", OnPapyrusVRMessage);
+		break;
+	}
 	case SKSEMessagingInterface::kMessage_DataLoaded:
 	{
+		_MESSAGE("SKSE Message: Data Loaded");
+
+		break;
+	}
+	case SKSEMessagingInterface::kMessage_InputLoaded:
+	{
+		_MESSAGE("SKSE Message: Input Loaded");
+
 		ini.Load();
 
 		if (!g_branchTrampoline.Create(1024 * 64))
@@ -191,10 +241,6 @@ void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 			g_IsLeftHandMode = (int)iniLeftHandSetting->data.u8;
 		}
 
-		break;
-	}
-	case SKSEMessagingInterface::kMessage_InputLoaded:
-	{
 		void * dispatchPtr = g_messaging->GetEventDispatcher(SKSEMessagingInterface::kDispatcher_ActionEvent);
 		g_skseActionEventDispatcher = (EventDispatcher<SKSEActionEvent>*)dispatchPtr;
 
