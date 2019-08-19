@@ -10,12 +10,15 @@ bool CDamageTracker::RegisterAttack(SpellItem* spell)
 	if (effectItem)
 	{
 		dmgEntry.mFormType = effectItem->mgef->properties.projectile->formType;
+		dmgEntry.mFormID = effectItem->mgef->properties.projectile->formID;
 		dmgEntry.mDamage = effectItem->magnitude;
 		dmgEntry.mIsSpell = true;
 		dmgEntry.mKeyword = dmgKeyword;
-		dmgEntry.mProjectileName = effectItem->mgef->properties.projectile->fullName.GetName();
+		dmgEntry.mProjectileName = spell->dispObj.worldStatic->texSwap.GetModelName(); //effectItem->mgef->properties.projectile->fullName.GetName();
 		
 		this->mDamageMap[dmgEntry.mFormType] = dmgEntry;
+
+		_DEBUGMSG("Registering spell attack FormType: %d FormID: 0x%X Damage: %f Keyword: %s ProjectileName: %s", dmgEntry.mFormType, dmgEntry.mFormID, dmgEntry.mDamage, dmgEntry.mKeyword.c_str(), dmgEntry.mProjectileName.c_str());
 
 		return true;
 	}
@@ -29,17 +32,40 @@ bool CDamageTracker::RegisterAttack(TESObjectWEAP* weapon)
 	dmgEntry.mFormType = kFormType_Arrow; // assume we are shooting arrow in the non-spell case.  should be true unless crossbow bolts are another type?
 	dmgEntry.mDamage = weapon->damage.GetAttackDamage();
 	
+	_DEBUGMSG("Registering arrow attack FormType: %d Damage: %f", dmgEntry.mFormType, dmgEntry.mDamage);
+
 	mDamageMap[dmgEntry.mFormType] = dmgEntry;
 
 	return true;
 }
 
-const CDamageEntry* CDamageTracker::LookupDamageEntry(Projectile* proj) const
+CDamageEntry* CDamageTracker::LookupDamageEntry(Projectile* proj)
 {
-	auto it = mDamageMap.find(proj->formType);
+	UInt8 formTypeLookup = 0;
+
+	if (proj->formType == kFormType_Arrow) // arrow type seems are always just arrows
+	{
+		formTypeLookup = kFormType_Arrow;
+	}
+	else // situation is more complex for spells
+	{
+		// NOTE: This is a hack fix for difference between BSGProjectile (from Spell/EffectItem data structure) and Projectile (the actual physics projectile structure)
+		// BSGProjectile type (which is used for registration) always has type == kFormType_Projectile, while it seems "Projectile"  type can have a variety of form types - i.e. Missile, FlameProjectile etc
+		// Ideally we could have a lookup table for what BSGProjectile/SpellItem will produce what kind of Projectile formtype but we do not have that data yet.  
+		formTypeLookup = kFormType_Projectile;
+	}
+
+	auto it = mDamageMap.find(formTypeLookup);
 	if (it != mDamageMap.end())
 	{
-		return &it->second;
+		CDamageEntry* dmgEntry = &it->second;
+		_DEBUGMSG("LookupDamageEntry() ProjectileFormType: %d FormType: %d FormID: 0x%X Damage: %f Keyword: %s ProjectileName: %s", proj->formType, dmgEntry->mFormType, dmgEntry->mFormID, dmgEntry->mDamage, dmgEntry->mKeyword.c_str(), dmgEntry->mProjectileName.c_str());
+
+		return dmgEntry;
+	}
+	else
+	{
+		_DEBUGMSG("LookupDamageEntry(): Failed with FormTypeLookup: %d FormType: %d formID: 0x%X", formTypeLookup, proj->formType, proj->formID);
 	}
 
 	return nullptr;

@@ -13,6 +13,7 @@
 #include <skse64/GameTypes.h>
 #include <skse64/PapyrusEvents.h>
 #include <skse64/PapyrusVM.h>
+#include <skse64/GameSettings.h>
 
 #include "skse64_common/skse_version.h"
 #include "skse64_common/Relocation.h"
@@ -95,6 +96,7 @@ PluginHandle g_pluginHandle = kPluginHandle_Invalid;
 EventDispatcher<SKSEActionEvent>* g_skseActionEventDispatcher;
 SKSEPlayerActionEvent	g_PlayerActionEvent;
 CDamageTracker			g_DamageTracker;
+int						g_IsLeftHandMode = 0;
 
 typedef SpellItem EquippedSpellObject;
 
@@ -182,6 +184,13 @@ void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 		g_branchTrampoline.Write6Branch(OnProjectileHitHookLocation.GetUIntPtr(), uintptr_t(code.getCode()));
 
 		_MESSAGE("Code hooked successfully!");
+
+		Setting* iniLeftHandSetting = GetINISetting("bLeftHandedMode:VRInput");
+		if (iniLeftHandSetting)
+		{
+			g_IsLeftHandMode = (int)iniLeftHandSetting->data.u8;
+		}
+
 		break;
 	}
 	case SKSEMessagingInterface::kMessage_InputLoaded:
@@ -440,11 +449,9 @@ static FoundEquipArmor GetEquippedArmorEx(Actor* actor, unsigned int slotMask)
 }
 
 
-static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObjectWEAP* weapon, EquippedSpellObject* spell, Projectile* projectile, Actor* caster_actor, TESObjectARMO* armor, MultiplierType multiplierType)
+static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObjectWEAP* weapon, EquippedSpellObject* spell, Projectile* projectile, Actor* caster_actor, TESObjectARMO* armor, MultiplierType multiplierType, const CDamageEntry* dmgEntry)
 {
 	float damage = 0.0;
-
-	const CDamageEntry* dmgEntry = g_DamageTracker.LookupDamageEntry(projectile);
 
 	// if we have a damage entry, get tracked stats from when the attack was launched (new feature)
 	// this should fix a few issues where the user uses 2 destruction spells and increase compatibility with FEC / Spellsiphon potentially
@@ -528,11 +535,11 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 	const float dmgMultOffset = 1.0;
 
 	if (actor == *g_thePlayer)
-		damage *= ( std::max<double>(ini.NPCToPlayer[multiplierType], 1.0) - dmgMultOffset);
+		damage *= ( std::max<float>(ini.NPCToPlayer[multiplierType], 1.0) - dmgMultOffset);
 	else if (caster_actor == *g_thePlayer)
-		damage *= (std::max<double>(ini.PlayerToNPC[multiplierType], 1.0) - dmgMultOffset);
+		damage *= (std::max<float>(ini.PlayerToNPC[multiplierType], 1.0) - dmgMultOffset);
 	else
-		damage *= (std::max<double>(ini.NPCToNPC[multiplierType], 1.0) - dmgMultOffset);
+		damage *= (std::max<float>(ini.NPCToNPC[multiplierType], 1.0) - dmgMultOffset);
 
 	return (float)-damage;
 }
@@ -763,6 +770,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 		Projectile* projectile = akProjectile; //(Projectile*)((UInt32*)stack[9])[32];
 		TESObjectREFR* caster = nullptr; //(TESObjectREFR*)((UInt32*)stack[9])[35];
 		EquippedSpellObject* spell = nullptr; // NEW: Try to track equipped spell used to shoot projectile
+		CDamageEntry* dmgEntry = nullptr;
 
 		int hitNode = -1;
 		float scale = CALL_MEMBER_FN(actor, GetBaseScale)(); //actor->GetScale();
@@ -820,7 +828,8 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 				}
 				else
 				{
-					caster_ref = caster;
+					// this line was pointless..
+					//caster_ref = caster;
 				}
 
 				Actor* caster_actor = nullptr;
@@ -830,6 +839,11 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 				// check if we have valid castor actor
 				if (caster_actor)
 				{
+					// if caster_actor was the player, try to get damage entry
+					if (caster_actor == *g_thePlayer)
+					{
+						dmgEntry = g_DamageTracker.LookupDamageEntry(projectile);
+					}
 
 					// IF this was an arrow projectile, try to get weapon
 					if (akProjectile->formType == kFormType_Arrow)
@@ -857,6 +871,10 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 						}
 					}
 				}
+				else
+				{
+					_DEBUGMSG("caster_actor was NULL.  Could not lookup or calculate damage!");
+				}
 
 				auto GetActorName = [](Actor* actor)->const char*
 				{
@@ -864,15 +882,22 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 					return name != nullptr ? name : "NULL";
 				};
 
-				auto GetProjectileType = [](Projectile* proj)->const char*
+				auto GetProjectileType = [dmgEntry](Projectile* proj)->const char*
 				{
-					if (proj->formType == kFormType_Arrow)
+					if (dmgEntry && dmgEntry->mKeyword != "")
 					{
-						return "Arrow";
+						return dmgEntry->mKeyword.c_str();
 					}
 					else
 					{
-						return "Spell";
+						if (proj->formType == kFormType_Arrow)
+						{
+							return "Arrow";
+						}
+						else
+						{
+							return "Spell";
+						}
 					}
 				};
 
@@ -913,7 +938,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 						if (ini.DamageTypeHead != 0)
 						{
-							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, spell, projectile, caster_actor, equipArmor.pArmor, Type_HeadDamageMultiplier);
+							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, spell, projectile, caster_actor, equipArmor.pArmor, Type_HeadDamageMultiplier, dmgEntry);
 							ApplyLocationalDamage(actor, ini.DamageTypeHead, locationalDmgVal, caster_actor);
 						}
 
@@ -932,7 +957,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 						if (ini.DamageTypeFoot != 0)
 						{
-							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, spell, projectile, caster_actor, equipArmor.pArmor, Type_FootDamageMultiplier);
+							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, spell, projectile, caster_actor, equipArmor.pArmor, Type_FootDamageMultiplier, dmgEntry);
 							ApplyLocationalDamage(actor, ini.DamageTypeFoot, locationalDmgVal, caster_actor);
 						}
 
@@ -951,7 +976,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 						if (ini.DamageTypeArms != 0)
 						{
-							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, spell, projectile, caster_actor, equipArmor.pArmor, Type_ArmsDamageMultiplier);
+							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, spell, projectile, caster_actor, equipArmor.pArmor, Type_ArmsDamageMultiplier, dmgEntry);
 							ApplyLocationalDamage(actor, ini.DamageTypeArms, locationalDmgVal, caster_actor);
 						}
 
@@ -969,7 +994,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 						if (ini.DamageTypeHeart != 0)
 						{
-							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, spell, projectile, caster_actor, equipArmor.pArmor, Type_HeartDamageMultiplier);
+							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, spell, projectile, caster_actor, equipArmor.pArmor, Type_HeartDamageMultiplier, dmgEntry);
 							ApplyLocationalDamage(actor, ini.DamageTypeHeart, locationalDmgVal, caster_actor);
 						}
 						
@@ -1002,13 +1027,24 @@ EventResult SKSEPlayerActionEvent::ReceiveEvent(SKSEActionEvent * evn, EventDisp
 
 	auto GetCorrectSpellBySlot = [player](int slot)->SpellItem*
 	{
-		// TODO: left hand mode
-		if (slot == SKSEActionEvent::kSlot_Left)
+		if (g_IsLeftHandMode)
 		{
-			return player->leftHandSpell;
+			if (slot == SKSEActionEvent::kSlot_Right) // swap things up for left handed mode
+			{
+				return player->leftHandSpell;
+			}
+
+			return player->rightHandSpell;
 		}
-		
-		return player->rightHandSpell;
+		else
+		{
+			if (slot == SKSEActionEvent::kSlot_Left)
+			{
+				return player->leftHandSpell;
+			}
+
+			return player->rightHandSpell;
+		}
 	};
 
 	if (evn->actor == player)
@@ -1022,7 +1058,7 @@ EventResult SKSEPlayerActionEvent::ReceiveEvent(SKSEActionEvent * evn, EventDisp
 				g_DamageTracker.RegisterAttack(spell);
 			}
 		}
-		else if (evn->type == SKSEActionEvent::kType_BowRelease)
+		else if (evn->type == SKSEActionEvent::kType_EndDraw)
 		{
 			TESForm* equippedForm = player->GetEquippedObject(false);
 			TESObjectWEAP* weapon = DYNAMIC_CAST(equippedForm, TESForm, TESObjectWEAP);

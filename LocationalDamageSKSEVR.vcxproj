@@ -23,7 +23,7 @@
     <ProjectGuid>{3B19D4C0-EC39-4C85-8CB4-15E8F5391FE0}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>LocationalDamageSKSEVR</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
