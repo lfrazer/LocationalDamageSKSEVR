@@ -8,7 +8,7 @@
 #include <skse64/GameReferences.h>
 #include <skse64/GameObjects.h>
 
-#define EXTRA_DEBUG_LOG 1
+#define EXTRA_DEBUG_LOG 0
 
 #if EXTRA_DEBUG_LOG || defined(_DEBUG)
 #define _DEBUGMSG _MESSAGE
@@ -23,6 +23,7 @@ struct CDamageEntry
 	UInt32			mFormID = 0;
 	float			mDamage = 0.0f;
 	bool			mIsSpell = false;
+	UInt8			mWeaponType = 0;
 	std::string		mKeyword;
 	std::string		mProjectileName;
 };

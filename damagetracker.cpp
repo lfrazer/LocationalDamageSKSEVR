@@ -31,7 +31,8 @@ bool CDamageTracker::RegisterAttack(TESObjectWEAP* weapon)
 	CDamageEntry dmgEntry;
 	dmgEntry.mFormType = kFormType_Arrow; // assume we are shooting arrow in the non-spell case.  should be true unless crossbow bolts are another type?
 	dmgEntry.mDamage = weapon->damage.GetAttackDamage();
-	
+	dmgEntry.mWeaponType = weapon->type();
+
 	_DEBUGMSG("Registering arrow attack FormType: %d Damage: %f", dmgEntry.mFormType, dmgEntry.mDamage);
 
 	mDamageMap[dmgEntry.mFormType] = dmgEntry;
@@ -132,6 +133,8 @@ float GetSpellDamage(SpellItem* spell)
 
 	return 0.0f;
 }
+
+
 
 
 // SKSE reference:

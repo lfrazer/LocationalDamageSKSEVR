@@ -27,6 +27,7 @@
 #include "api/OpenVRTypes.h"
 #include "api/openvr.h"
 #include "api/VRHookAPI.h"
+#include "api/PapyrusVRAPI.h"
 
 #include <random>
 
@@ -109,6 +110,8 @@ typedef SpellItem EquippedSpellObject;
 int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* akTarget, NiPoint3* point, UInt32 unk1,
 	UInt32 unk2, UInt8 unk3);
 
+void OnVRButtonEvent(PapyrusVR::VREventType type, PapyrusVR::EVRButtonId buttonId, PapyrusVR::VRDevice deviceId);
+
 struct DoAddHook_Code : Xbyak::CodeGenerator
 {
 	DoAddHook_Code(void* buf, uintptr_t hook_OnProjectileHit) : CodeGenerator(4096, buf)
@@ -163,22 +166,6 @@ namespace papyrusStatic
 	RelocAddr<_DebugNotification> DebugNotifcation(DEBUGNOTIFICATION_FN);
 }
 
-// Legacy API event handler
-void OnVRButtonEvent(PapyrusVR::VREventType type, PapyrusVR::EVRButtonId buttonId, PapyrusVR::VRDevice deviceId)
-{
-	// Use button presses here
-	if (type == PapyrusVR::VREventType_Pressed)
-	{
-		//_MESSAGE("VR Button press deviceId: %d buttonId: %d", deviceId, buttonId);
-
-		//g_quickslotMgr->ButtonPress(buttonId, deviceId);
-	}
-	else if (type == PapyrusVR::VREventType_Released)
-	{
-		//g_quickslotMgr->ButtonRelease(buttonId, deviceId);
-	}
-}
-
 //Listener for PapyrusVR Messages
 void OnPapyrusVRMessage(SKSEMessagingInterface::Message* msg)
 {
@@ -195,12 +182,14 @@ void OnPapyrusVRMessage(SKSEMessagingInterface::Message* msg)
 
 void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 {
+	static bool bVRToolsListenerValid = false;
+
 	switch (msg->type)
 	{
 	case SKSEMessagingInterface::kMessage_PostLoad:
 	{
 		_MESSAGE("SKSE PostLoad message received, registering for PapyrusVR messages from SkyrimVRTools");  // This log msg may happen before XML is loaded
-		g_messaging->RegisterListener(g_pluginHandle, "SkyrimVRTools", OnPapyrusVRMessage);
+		bVRToolsListenerValid = g_messaging->RegisterListener(g_pluginHandle, "SkyrimVRTools", OnPapyrusVRMessage);
 		break;
 	}
 	case SKSEMessagingInterface::kMessage_DataLoaded:
@@ -241,10 +230,21 @@ void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 			g_IsLeftHandMode = (int)iniLeftHandSetting->data.u8;
 		}
 
-		void * dispatchPtr = g_messaging->GetEventDispatcher(SKSEMessagingInterface::kDispatcher_ActionEvent);
-		g_skseActionEventDispatcher = (EventDispatcher<SKSEActionEvent>*)dispatchPtr;
+		if (bVRToolsListenerValid && g_papyrusvr)
+		{
+			g_papyrusvr->GetVRManager()->RegisterVRButtonListener(OnVRButtonEvent);
+			_MESSAGE("Registering PapyrusVR OnVRButtonEvent with SkyrimVRTools.");
+		}
+		else
+		{
+			void * dispatchPtr = g_messaging->GetEventDispatcher(SKSEMessagingInterface::kDispatcher_ActionEvent);
+			g_skseActionEventDispatcher = (EventDispatcher<SKSEActionEvent>*)dispatchPtr;
 
-		g_skseActionEventDispatcher->AddEventSink(&g_PlayerActionEvent);
+			g_skseActionEventDispatcher->AddEventSink(&g_PlayerActionEvent);
+
+			_MESSAGE("Registering PlayerActionEvent listener since SkyrimVRTools is not available.");
+		}
+
 		break;
 	}
 	}
@@ -263,12 +263,17 @@ extern "C" {
 		gLog.SetPrintLevel(IDebugLog::kLevel_Error);
 		gLog.SetLogLevel(IDebugLog::kLevel_DebugMessage);
 
+#ifdef SKYRIMVR
+		_MESSAGE("LocationalDamageSKSEVR Plugin");
+		info->name = "LocationalDamageSKSEVR Plugin";
+#else
 		_MESSAGE("LocationalDamageSKSE64 Plugin");
+		info->name = "LocationalDamageSKSE64 Plugin";
+#endif
 
 		// populate info structure
 		info->infoVersion = PluginInfo::kInfoVersion;
-		info->name = "LocationalDamageSKSE64 Plugin";
-		info->version = 1;
+		info->version = 4;
 
 		g_pluginHandle = skse->GetPluginHandle();
 
@@ -494,31 +499,41 @@ static FoundEquipArmor GetEquippedArmorEx(Actor* actor, unsigned int slotMask)
 	return equipArmor;
 }
 
+static SpellItem* GetCorrectSpellBySlot(Actor* player, int slot)
+{
+	if (g_IsLeftHandMode)
+	{
+		if (slot == SKSEActionEvent::kSlot_Right) // swap things up for left handed mode
+		{
+			return player->leftHandSpell;
+		}
+
+		return player->rightHandSpell;
+	}
+	else
+	{
+		if (slot == SKSEActionEvent::kSlot_Left)
+		{
+			return player->leftHandSpell;
+		}
+
+		return player->rightHandSpell;
+	}
+}
+
 
 static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObjectWEAP* weapon, EquippedSpellObject* spell, Projectile* projectile, Actor* caster_actor, TESObjectARMO* armor, MultiplierType multiplierType, const CDamageEntry* dmgEntry)
 {
 	float damage = 0.0;
 
-	// if we have a damage entry, get tracked stats from when the attack was launched (new feature)
-	// this should fix a few issues where the user uses 2 destruction spells and increase compatibility with FEC / Spellsiphon potentially
-	if (dmgEntry)
+	// add skill based damage to weapon bonus dmg (I'm pretty sure at least)
+	auto AddWeaponSkillDamage = [&](UInt8 weaponType)
 	{
-		damage = dmgEntry->mDamage;
-
-		if (dmgEntry->mIsSpell)
-		{
-			damage = damage * ini.SpellDamageMultiplier;
-		}
-	}
-	else if (weapon && (!attackData || !attackData->flags.ignoreWeapon))
-	{
-		damage = weapon->damage.GetAttackDamage(); // weapon->damage.attackDamage  might be safer
-
 		if (caster_actor)
 		{
 			const float inv100 = 1.0f / 100.f;
 
-			switch (weapon->type())
+			switch (weaponType)
 			{
 			case TESObjectWEAP::GameData::kType_HandToHandMelee:
 				damage = caster_actor->actorValueOwner.GetCurrent(35); //caster_actor->GetActorValueCurrent(35);
@@ -535,16 +550,37 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 				break;
 			case TESObjectWEAP::GameData::kType_Bow:
 			case TESObjectWEAP::GameData::kType_CrossBow:
-				damage *= 1.0 + caster_actor->actorValueOwner.GetCurrent(8) * 0.5 * inv100; 
+				damage *= 1.0 + caster_actor->actorValueOwner.GetCurrent(8) * 0.5 * inv100;
 				break;
 			default:
 				break;
 			}
 		}
+	};
+
+
+	// if we have a damage entry, get tracked stats from when the attack was launched (new feature)
+	// this should fix a few issues where the user uses 2 destruction spells and increase compatibility with FEC / Spellsiphon potentially
+	if (dmgEntry)
+	{
+		damage = dmgEntry->mDamage;
+
+		if (dmgEntry->mIsSpell)
+		{
+			damage = damage * ini.SpellDamageMultiplier;
+		}
+		else
+		{
+			AddWeaponSkillDamage(dmgEntry->mWeaponType);
+		}
+	}
+	else if (weapon && (!attackData || !attackData->flags.ignoreWeapon))
+	{
+		damage = weapon->damage.GetAttackDamage(); // weapon->damage.attackDamage  might be safer
+		AddWeaponSkillDamage(weapon->type());
 	}
 	else if (spell) // try to get spell damage
 	{
-
 		damage = GetSpellDamage(spell);
 
 		damage = damage * ini.SpellDamageMultiplier;
@@ -556,7 +592,9 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 	}
 
 	if (attackData)
+	{
 		damage *= attackData->damageMult;
+	}
 
 	if (armor)
 	{
@@ -1071,34 +1109,12 @@ EventResult SKSEPlayerActionEvent::ReceiveEvent(SKSEActionEvent * evn, EventDisp
 {
 	auto player = DYNAMIC_CAST(LookupFormByID(0x14), TESForm, Actor);
 
-	auto GetCorrectSpellBySlot = [player](int slot)->SpellItem*
-	{
-		if (g_IsLeftHandMode)
-		{
-			if (slot == SKSEActionEvent::kSlot_Right) // swap things up for left handed mode
-			{
-				return player->leftHandSpell;
-			}
-
-			return player->rightHandSpell;
-		}
-		else
-		{
-			if (slot == SKSEActionEvent::kSlot_Left)
-			{
-				return player->leftHandSpell;
-			}
-
-			return player->rightHandSpell;
-		}
-	};
-
 	if (evn->actor == player)
 	{
 
 		if (evn->type == SKSEActionEvent::kType_SpellCast)
 		{
-			SpellItem* spell = GetCorrectSpellBySlot(evn->slot);
+			SpellItem* spell = GetCorrectSpellBySlot(player, evn->slot);
 			if (spell)
 			{
 				g_DamageTracker.RegisterAttack(spell);
@@ -1124,5 +1140,46 @@ EventResult SKSEPlayerActionEvent::ReceiveEvent(SKSEActionEvent * evn, EventDisp
 	}
 
 	return EventResult::kEvent_Continue;
+}
+
+// Legacy API event handler
+void OnVRButtonEvent(PapyrusVR::VREventType type, PapyrusVR::EVRButtonId buttonId, PapyrusVR::VRDevice deviceId)
+{
+	// matches PapyrusVR::VRDevice enum
+	static int deviceToSlotLookup[3] = {0, SKSEActionEvent::kSlot_Right, SKSEActionEvent::kSlot_Left};
+
+	// Use button presses here
+	if (buttonId == PapyrusVR::k_EButton_SteamVR_Trigger && (type == PapyrusVR::VREventType_Pressed || type == PapyrusVR::VREventType_Released))
+	{
+		auto player = DYNAMIC_CAST(LookupFormByID(0x14), TESForm, Actor);
+		TESForm* equippedForm = player->GetEquippedObject(false);
+		TESObjectWEAP* weapon = DYNAMIC_CAST(equippedForm, TESForm, TESObjectWEAP);
+
+		// try the other hand too
+		if (!weapon)
+		{
+			equippedForm = player->GetEquippedObject(true);
+			weapon = DYNAMIC_CAST(equippedForm, TESForm, TESObjectWEAP);
+		}
+
+		if (weapon &&
+			(weapon->type() == TESObjectWEAP::GameData::kType_Bow
+				|| weapon->type() == TESObjectWEAP::GameData::kType_Bow2
+				|| weapon->type() == TESObjectWEAP::GameData::kType_CBow
+				|| weapon->type() == TESObjectWEAP::GameData::kType_CrossBow))
+		{
+			g_DamageTracker.RegisterAttack(weapon);
+		}
+		else
+		{
+			SpellItem* spell = GetCorrectSpellBySlot(player, deviceToSlotLookup[deviceId]);
+			if (spell)
+			{
+				g_DamageTracker.RegisterAttack(spell);
+			}
+		}
+
+	}
+
 }
 
