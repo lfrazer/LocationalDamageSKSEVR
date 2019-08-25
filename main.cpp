@@ -61,8 +61,10 @@
 #define PROJECTILE_GETACTORCAUSEFN								0x00779010 // ??_7Projectile@@6B@			vtbl[51]
 
 #define DAMAGEACTORVALUE_FN										0x009848B0
+#define GETACTORVALUE_FN										0x00984E60
 #define PUSHACTORAWAY_FN										0x009D0E60
 #define DEBUGNOTIFICATION_FN									0x009A7E90
+#define PLAYSOUND_FN											0x009EF150
 
 #else
 // SSE 1.5.73
@@ -157,6 +159,9 @@ namespace papyrusActor
 
 	typedef void (*_DamageActorValue)(VMClassRegistry* VMinternal, UInt32 stackId, Actor * thisActor, BSFixedString const &dmgValueName, float dmg);
 	RelocAddr<_DamageActorValue> DamageActorValue(DAMAGEACTORVALUE_FN);
+
+	typedef SInt64 (*_GetActorValue)(VMClassRegistry* VMinternal, UInt32 stackId, Actor * thisActor, BSFixedString const &dmgValueName);
+	RelocAddr<_GetActorValue> GetActorValue(GETACTORVALUE_FN);
 }
 
 namespace papyrusStatic
@@ -164,6 +169,12 @@ namespace papyrusStatic
 	// This function seems to only use paramter 4 (string) anyway
 	typedef void(*_DebugNotification)(VMClassRegistry* VMinternal, UInt32 stackId, void* unk1, BSFixedString const &debugMsg);
 	RelocAddr<_DebugNotification> DebugNotifcation(DEBUGNOTIFICATION_FN);
+}
+
+namespace papyrusSound
+{
+	typedef void (*_PlaySound)(VMClassRegistry* VMinternal, UInt32 stackId, TESSound* sound, TESObjectREFR* source);
+	RelocAddr<_PlaySound> Play(PLAYSOUND_FN);
 }
 
 //Listener for PapyrusVR Messages
