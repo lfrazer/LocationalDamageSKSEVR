@@ -1,13 +1,6 @@
 ﻿//#include <SKSE.h>
 #include <skse64/PluginAPI.h>
 //#include <skse64/DebugLog.h>
-#include <skse64/GameRTTI.h>
-#include <skse64/GameForms.h>
-//#include <skse64/SafeWrite.h>
-//#include <skse64/HookUtil.h>
-#include <skse64/GameReferences.h>
-#include <skse64/GameObjects.h>
-#include <skse64/GameExtraData.h>
 #include <skse64/NiNodes.h>
 #include <skse64/GameCamera.h>
 #include <skse64/GameTypes.h>
@@ -40,6 +33,7 @@
 
 #include "iniSettings.h"
 #include "damagetracker.h"
+#include "common.h"
 
 //class Actor
 //DEFINE_MEMBER_FN(DamageActorValue, void, 0x006E0760, UInt32 unk1, UInt32 actorValueID, float damage, Actor* akAggressor);
@@ -52,33 +46,27 @@
 
 */
 
+// call "DamageActorValue" script func directly by address
+namespace papyrusActor
+{
 
-#ifdef SKYRIMVR
+	typedef void(*_DamageActorValue)(VMClassRegistry* VMinternal, UInt32 stackId, Actor * thisActor, BSFixedString const &dmgValueName, float dmg);
+	RelocAddr<_DamageActorValue> DamageActorValue(DAMAGEACTORVALUE_FN);
+}
 
-#define ONPROJECTILEHIT_HOOKLOCATION							0x00777E2A  // in VR, this is not called from HealthDamageFunctor_CTOR, so we will try to call it from BeamProjectile_vf_sub_140777A30 instead
-#define ONPROJECTILEHIT_INNERFUNCTION							0x0077E4E0
+namespace papyrusStatic
+{
+	// This function seems to only use paramter 4 (string) anyway
+	typedef void(*_DebugNotification)(VMClassRegistry* VMinternal, UInt32 stackId, void* unk1, BSFixedString const &debugMsg);
+	RelocAddr<_DebugNotification> DebugNotifcation(DEBUGNOTIFICATION_FN);
+}
 
-#define PROJECTILE_GETACTORCAUSEFN								0x00779010 // ??_7Projectile@@6B@			vtbl[51]
+namespace papyrusSound
+{
+	typedef void(*_PlaySound)(VMClassRegistry* VMinternal, UInt32 stackId, TESSound* sound, TESObjectREFR* source);
+	RelocAddr<_PlaySound> Play(PLAYSOUND_FN);
+}
 
-#define DAMAGEACTORVALUE_FN										0x009848B0
-#define GETACTORVALUE_FN										0x00984E60
-#define PUSHACTORAWAY_FN										0x009D0E60
-#define DEBUGNOTIFICATION_FN									0x009A7E90
-#define PLAYSOUND_FN											0x009EF150
-
-#else
-// SSE 1.5.73
-
-#define ONPROJECTILEHIT_HOOKLOCATION							0x0074CB0A
-#define ONPROJECTILEHIT_INNERFUNCTION							0x007531C0
-
-#define PROJECTILE_GETACTORCAUSEFN								0x0074DCF0 // ??_7Projectile@@6B@			vtbl[51]
-
-#define DAMAGEACTORVALUE_FN										0x0094A4C0
-#define PUSHACTORAWAY_FN										0x00996340
-#define DEBUGNOTIFICATION_FN									0x0096DDB0
-
-#endif
 
 typedef int64_t(*_OnProjectileHitFunction)(Projectile* akProjectile, TESObjectREFR* akTarget, NiPoint3* point,
 	UInt32 unk1, UInt32 unk2, UInt8 unk3);
@@ -87,7 +75,6 @@ RelocAddr<uintptr_t> OnProjectileHitHookLocation(ONPROJECTILEHIT_HOOKLOCATION);
 
 typedef UInt32*(*_GetActorCause)(TESObjectREFR* refr);
 RelocAddr<_GetActorCause> Projectile_GetActorCauseFn(PROJECTILE_GETACTORCAUSEFN);
-
 
 class SKSEPlayerActionEvent : public BSTEventSink <SKSEActionEvent>
 {
@@ -150,33 +137,6 @@ struct DoAddHook_Code : Xbyak::CodeGenerator
 };
 
 
-// First params should be BSScript__Internal__VirtualMachine class ptr
-// Maybe at: 141F81900
-
-// call "DamageActorValue" script func directly by address
-namespace papyrusActor
-{
-
-	typedef void (*_DamageActorValue)(VMClassRegistry* VMinternal, UInt32 stackId, Actor * thisActor, BSFixedString const &dmgValueName, float dmg);
-	RelocAddr<_DamageActorValue> DamageActorValue(DAMAGEACTORVALUE_FN);
-
-	typedef SInt64 (*_GetActorValue)(VMClassRegistry* VMinternal, UInt32 stackId, Actor * thisActor, BSFixedString const &dmgValueName);
-	RelocAddr<_GetActorValue> GetActorValue(GETACTORVALUE_FN);
-}
-
-namespace papyrusStatic
-{
-	// This function seems to only use paramter 4 (string) anyway
-	typedef void(*_DebugNotification)(VMClassRegistry* VMinternal, UInt32 stackId, void* unk1, BSFixedString const &debugMsg);
-	RelocAddr<_DebugNotification> DebugNotifcation(DEBUGNOTIFICATION_FN);
-}
-
-namespace papyrusSound
-{
-	typedef void (*_PlaySound)(VMClassRegistry* VMinternal, UInt32 stackId, TESSound* sound, TESObjectREFR* source);
-	RelocAddr<_PlaySound> Play(PLAYSOUND_FN);
-}
-
 //Listener for PapyrusVR Messages
 void OnPapyrusVRMessage(SKSEMessagingInterface::Message* msg)
 {
@@ -197,67 +157,69 @@ void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 
 	switch (msg->type)
 	{
-	case SKSEMessagingInterface::kMessage_PostLoad:
-	{
-		_MESSAGE("SKSE PostLoad message received, registering for PapyrusVR messages from SkyrimVRTools");  // This log msg may happen before XML is loaded
-		bVRToolsListenerValid = g_messaging->RegisterListener(g_pluginHandle, "SkyrimVRTools", OnPapyrusVRMessage);
-		break;
-	}
-	case SKSEMessagingInterface::kMessage_DataLoaded:
-	{
-		_MESSAGE("SKSE Message: Data Loaded");
-
-		break;
-	}
-	case SKSEMessagingInterface::kMessage_InputLoaded:
-	{
-		_MESSAGE("SKSE Message: Input Loaded");
-
-		ini.Load();
-
-		if (!g_branchTrampoline.Create(1024 * 64))
+		case SKSEMessagingInterface::kMessage_PostLoad:
 		{
-			_FATALERROR("[ERROR] couldn't create branch trampoline. this is fatal. skipping remainder of init process.");
-			return;
+			_MESSAGE("SKSE PostLoad message received, registering for PapyrusVR messages from SkyrimVRTools");  // This log msg may happen before XML is loaded
+			bVRToolsListenerValid = g_messaging->RegisterListener(g_pluginHandle, "SkyrimVRTools", OnPapyrusVRMessage);
+			break;
 		}
-
-		if (!g_localTrampoline.Create(1024 * 64, nullptr))
+		case SKSEMessagingInterface::kMessage_DataLoaded:
 		{
-			_FATALERROR("[ERROR] couldn't create codegen buffer. this is fatal. skipping remainder of init process.");
-			return;
+			_MESSAGE("SKSE Message: Data Loaded");
+
+
+			ini.Load();
+
+			if (!g_branchTrampoline.Create(1024 * 64))
+			{
+				_FATALERROR("[ERROR] couldn't create branch trampoline. this is fatal. skipping remainder of init process.");
+				return;
+			}
+
+			if (!g_localTrampoline.Create(1024 * 64, nullptr))
+			{
+				_FATALERROR("[ERROR] couldn't create codegen buffer. this is fatal. skipping remainder of init process.");
+				return;
+			}
+
+			void* codeBuf = g_localTrampoline.StartAlloc();
+			DoAddHook_Code code(codeBuf, (uintptr_t)OnProjectileHitFunctionHooked);
+			g_localTrampoline.EndAlloc(code.getCurr());
+
+			g_branchTrampoline.Write6Branch(OnProjectileHitHookLocation.GetUIntPtr(), uintptr_t(code.getCode()));
+
+			_MESSAGE("Code hooked successfully!");
+
+			Setting* iniLeftHandSetting = GetINISetting("bLeftHandedMode:VRInput");
+			if (iniLeftHandSetting)
+			{
+				g_IsLeftHandMode = (int)iniLeftHandSetting->data.u8;
+			}
+
+			if (bVRToolsListenerValid && g_papyrusvr)
+			{
+				g_papyrusvr->GetVRManager()->RegisterVRButtonListener(OnVRButtonEvent);
+				_MESSAGE("Registering PapyrusVR OnVRButtonEvent with SkyrimVRTools.");
+			}
+			else
+			{
+				void * dispatchPtr = g_messaging->GetEventDispatcher(SKSEMessagingInterface::kDispatcher_ActionEvent);
+				g_skseActionEventDispatcher = (EventDispatcher<SKSEActionEvent>*)dispatchPtr;
+
+				g_skseActionEventDispatcher->AddEventSink(&g_PlayerActionEvent);
+
+				_MESSAGE("Registering PlayerActionEvent listener since SkyrimVRTools is not available.");
+			}
+
+			g_DamageTracker.Init();
+
+			break;
 		}
-
-		void* codeBuf = g_localTrampoline.StartAlloc();
-		DoAddHook_Code code(codeBuf, (uintptr_t)OnProjectileHitFunctionHooked);
-		g_localTrampoline.EndAlloc(code.getCurr());
-
-		g_branchTrampoline.Write6Branch(OnProjectileHitHookLocation.GetUIntPtr(), uintptr_t(code.getCode()));
-
-		_MESSAGE("Code hooked successfully!");
-
-		Setting* iniLeftHandSetting = GetINISetting("bLeftHandedMode:VRInput");
-		if (iniLeftHandSetting)
+		case SKSEMessagingInterface::kMessage_InputLoaded:
 		{
-			g_IsLeftHandMode = (int)iniLeftHandSetting->data.u8;
+			_MESSAGE("SKSE Message: Input Loaded");
+			break;
 		}
-
-		if (bVRToolsListenerValid && g_papyrusvr)
-		{
-			g_papyrusvr->GetVRManager()->RegisterVRButtonListener(OnVRButtonEvent);
-			_MESSAGE("Registering PapyrusVR OnVRButtonEvent with SkyrimVRTools.");
-		}
-		else
-		{
-			void * dispatchPtr = g_messaging->GetEventDispatcher(SKSEMessagingInterface::kDispatcher_ActionEvent);
-			g_skseActionEventDispatcher = (EventDispatcher<SKSEActionEvent>*)dispatchPtr;
-
-			g_skseActionEventDispatcher->AddEventSink(&g_PlayerActionEvent);
-
-			_MESSAGE("Registering PlayerActionEvent listener since SkyrimVRTools is not available.");
-		}
-
-		break;
-	}
 	}
 }
 
@@ -1128,7 +1090,7 @@ EventResult SKSEPlayerActionEvent::ReceiveEvent(SKSEActionEvent * evn, EventDisp
 			SpellItem* spell = GetCorrectSpellBySlot(player, evn->slot);
 			if (spell)
 			{
-				g_DamageTracker.RegisterAttack(spell);
+				g_DamageTracker.RegisterAttack(spell, player);
 			}
 		}
 		else if (evn->type == SKSEActionEvent::kType_EndDraw)
@@ -1186,7 +1148,7 @@ void OnVRButtonEvent(PapyrusVR::VREventType type, PapyrusVR::EVRButtonId buttonI
 			SpellItem* spell = GetCorrectSpellBySlot(player, deviceToSlotLookup[deviceId]);
 			if (spell)
 			{
-				g_DamageTracker.RegisterAttack(spell);
+				g_DamageTracker.RegisterAttack(spell, player);
 			}
 		}
 

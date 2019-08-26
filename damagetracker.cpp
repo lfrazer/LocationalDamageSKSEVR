@@ -1,7 +1,37 @@
 #include "damagetracker.h"
+#include "common.h"
+#include <skse64/PapyrusVM.h>
+#include <skse64/GameData.h>
 
+namespace papyrusActor
+{
+	typedef float (*_GetActorValue)(VMClassRegistry* VMinternal, UInt32 stackId, Actor * thisActor, BSFixedString const &dmgValueName);
+	RelocAddr<_GetActorValue> GetActorValue(GETACTORVALUE_FN);
+}
 
-bool CDamageTracker::RegisterAttack(SpellItem* spell)
+void CDamageTracker::Init()
+{
+	const char* spellsiphonESP = "Spellsiphon.esp";
+	const ModInfo* ssModInfo = DataHandler::GetSingleton()->LookupModByName(spellsiphonESP);
+	
+	if (ssModInfo)
+	{
+		mSpellsiphonModIndex = ssModInfo->GetPartialIndex();
+		_MESSAGE("Found spellsiphon mod! Idx = %d", mSpellsiphonModIndex);
+	}
+}
+
+bool CDamageTracker::IsFromSpellsiphon(TESForm* form) const
+{
+	if (mSpellsiphonModIndex)
+	{
+		return (form->formID >> 24) == mSpellsiphonModIndex;
+	}
+
+	return false;
+}
+
+bool CDamageTracker::RegisterAttack(SpellItem* spell, Actor* actor)
 {
 	CDamageEntry dmgEntry;
 	const char* dmgKeyword;
@@ -16,6 +46,16 @@ bool CDamageTracker::RegisterAttack(SpellItem* spell)
 		dmgEntry.mKeyword = dmgKeyword;
 		dmgEntry.mProjectileName = spell->dispObj.worldStatic->texSwap.GetModelName(); //effectItem->mgef->properties.projectile->fullName.GetName();
 		
+		// TODO: apply all perk modifiers for damage?
+		// apply spellsiphon perk damage modifier (based on magicka regen rate)
+
+		if(IsFromSpellsiphon(spell))
+		{
+			const float magickaRateMult = papyrusActor::GetActorValue((*g_skyrimVM)->GetClassRegistry(), 0, actor, "MagickaRateMult");
+			//_MESSAGE("MagickaRateMult -  float = %f ",magickaRateMult);
+			dmgEntry.mDamage *= (magickaRateMult * 0.01f);
+		}
+
 		this->mDamageMap[dmgEntry.mFormType] = dmgEntry;
 
 		_DEBUGMSG("Registering spell attack FormType: %d FormID: 0x%X Damage: %f Keyword: %s ProjectileName: %s", dmgEntry.mFormType, dmgEntry.mFormID, dmgEntry.mDamage, dmgEntry.mKeyword.c_str(), dmgEntry.mProjectileName.c_str());

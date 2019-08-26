@@ -31,13 +31,17 @@ struct CDamageEntry
 class CDamageTracker
 {
 public:
-	bool RegisterAttack(SpellItem* spell);
+	void Init();
+	bool IsFromSpellsiphon(TESForm* form) const;
+
+	bool RegisterAttack(SpellItem* spell, Actor* actor);
 	bool RegisterAttack(TESObjectWEAP* weapon);
 	CDamageEntry* LookupDamageEntry(Projectile* proj);
 
 private:
 	// lookup by FormType currently.. not sure if this will work though.
 	std::unordered_map<UInt8, CDamageEntry>	mDamageMap;
+	UInt32									mSpellsiphonModIndex = 0;
 };
 
 

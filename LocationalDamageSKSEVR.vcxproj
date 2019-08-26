@@ -274,6 +274,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="common.h" />
     <ClInclude Include="damagetracker.h" />
     <ClInclude Include="iniSettings.h" />
     <ClInclude Include="libskyrim\BGSAttackData.h" />
