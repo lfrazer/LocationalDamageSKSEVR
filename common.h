@@ -24,6 +24,7 @@
 #define PUSHACTORAWAY_FN										0x009D0E60
 #define DEBUGNOTIFICATION_FN									0x009A7E90
 #define PLAYSOUND_FN											0x009EF150
+#define PLAYIMPACTEFFECT_FN										0x009D06C0
 
 #else
 // SSE 1.5.73

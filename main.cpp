@@ -67,6 +67,13 @@ namespace papyrusSound
 	RelocAddr<_PlaySound> Play(PLAYSOUND_FN);
 }
 
+namespace papyrusObjRef
+{
+	typedef void(*_PlayImpactEffect)(VMClassRegistry* VMinternal, UInt32 stackId, TESObjectREFR* obj, BGSImpactDataSet* impactData, BSFixedString const &asNodeName, float afPickDirX, float afPickDirY,
+		float afPickDirZ, float afPickLength, bool abApplyNodeRotation, bool abUseNodeLocalRotation);
+	RelocAddr<_PlayImpactEffect> PlayImpactEffect(PLAYIMPACTEFFECT_FN);
+}
+
 
 typedef int64_t(*_OnProjectileHitFunction)(Projectile* akProjectile, TESObjectREFR* akTarget, NiPoint3* point,
 	UInt32 unk1, UInt32 unk2, UInt8 unk3);
@@ -830,6 +837,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 		CDamageEntry* dmgEntry = nullptr;
 
 		int hitNode = -1;
+		BSFixedString hitNodeName;
 		float scale = CALL_MEMBER_FN(actor, GetBaseScale)(); //actor->GetScale();
 		for (int i = 0; i < nodeNames.size(); i++)
 		{
@@ -852,6 +860,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 				if (d2 < nodeNames[i].second * scale * nodeNames[i].second * scale)
 				{
 					hitNode = i;
+					hitNodeName = nodeNames[i].first;
 					break;
 				}
 			}
@@ -1061,15 +1070,19 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 					break;
 				}
 
-				// TODO: fix this
-				/*
-				if (done && ini.DisplayImpactEffect)
+				const float impactVFXDmgCutOff = 5.0f;
+				if (done && ini.DisplayImpactEffect && fabsf(locationalDmgVal) > impactVFXDmgCutOff)
 				{
-					typedef void(*FnPlayImpactEffect)(TESObjectCELL*, float, const char*, NiPoint3*, NiPoint3*, float, UInt32, UInt32);
-					const FnPlayImpactEffect fnPlayImpactEffect = (FnPlayImpactEffect)0x005F07C0;
-					fnPlayImpactEffect(cell, 1.0f, "LocationalDamage\\LocDamageImpact01.nif", (NiPoint3*)stack[4], hit_pos, 1.0f, stack[7], stack[8]);
+					//const UInt32 impactVFXFormID = 0xF457B; // blood spray bleed impact VFX
+					const UInt32 impactVFXFormID = 0x2C481; // DA09 light beam 01 impact VFX
+					BGSImpactDataSet* impactData = DYNAMIC_CAST(LookupFormByID(impactVFXFormID), TESForm, BGSImpactDataSet);
+
+					if (impactData)
+					{
+						papyrusObjRef::PlayImpactEffect((*g_skyrimVM)->GetClassRegistry(), 0, actor, impactData, hitNodeName, 0.0f, 0.0f, -1.0f, 512.0f, false, false);
+					}
 				}
-				*/
+				
 			}
 		}
 	}
