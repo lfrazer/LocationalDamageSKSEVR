@@ -505,6 +505,7 @@ static SpellItem* GetCorrectSpellBySlot(Actor* player, int slot)
 static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObjectWEAP* weapon, EquippedSpellObject* spell, Projectile* projectile, Actor* caster_actor, TESObjectARMO* armor, MultiplierType multiplierType, const CDamageEntry* dmgEntry)
 {
 	float damage = 0.0;
+	bool isSpell = false;
 
 	// add skill based damage to weapon bonus dmg (I'm pretty sure at least)
 	auto AddWeaponSkillDamage = [&](UInt8 weaponType)
@@ -548,6 +549,7 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 		if (dmgEntry->mIsSpell)
 		{
 			damage = damage * ini.SpellDamageMultiplier;
+			isSpell = true;
 		}
 		else
 		{
@@ -564,7 +566,8 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 		damage = GetSpellDamage(spell);
 
 		damage = damage * ini.SpellDamageMultiplier;
-		
+
+		isSpell = true;
 	}
 	else if (caster_actor)
 	{
@@ -576,7 +579,7 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 		damage *= attackData->damageMult;
 	}
 
-	if (armor)
+	if (armor && !isSpell) // only apply armor dmg reduction if this is not a spell attack
 	{
 		
 		// original definitions:
