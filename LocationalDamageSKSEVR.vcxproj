@@ -169,7 +169,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;PLUGIN_EXAMPLE_EXPORTS;SKYRIMVR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <ForcedIncludeFiles>common/IPrefix.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
-      <AdditionalIncludeDirectories>$(SolutionDir)sksevr;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)sksevr;$(SolutionDir)CommonLibSSE\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseFullPaths>false</UseFullPaths>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
@@ -258,7 +258,7 @@
       <PreprocessorDefinitions>NDEBUG;LOCATIONALDAMAGESKSEVR_EXPORTS;_WINDOWS;_USRDLL;SKYRIMVR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <ForcedIncludeFiles>common/IPrefix.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
-      <AdditionalIncludeDirectories>$(SolutionDir)sksevr;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)sksevr;$(SolutionDir)CommonLibSSE\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseFullPaths>false</UseFullPaths>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -284,6 +284,8 @@
     <ClInclude Include="libskyrim\CRC.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CommonLibSSE\src\RE\BSAudioManager.cpp" />
+    <ClCompile Include="CommonLibSSE\src\RE\SoundData.cpp" />
     <ClCompile Include="damagetracker.cpp" />
     <ClCompile Include="iniSettings.cpp" />
     <ClCompile Include="libskyrim\BGSAttackData.cpp" />

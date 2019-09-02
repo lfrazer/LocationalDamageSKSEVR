@@ -5,6 +5,8 @@
 #include <windows.h>
 #include <unordered_map>
 
+#include "common.h"
+
 enum MultiplierType
 {
 	Type_HeadDamageMultiplier,
@@ -45,8 +47,12 @@ public:
 	UInt32 UnequipArmorBaseChance;
 	UInt32 UnequipWeaponBaseChance;
 
+	UInt32 SoundEffectFormID = DEFAULT_SOUNDEFFECT_FORMID;
+	UInt32 ImpactEffectFormID = DEFAULT_IMPACTEFFECT_FORMID;
+
 	bool DisplayImpactEffect;
 	bool DisplayNotification;
+	bool PlaySoundEffect = true;
 	int DisplayNotificationMinDamage = 1;
 
 	std::string HeadMessageFront;

@@ -227,6 +227,14 @@ void INIFile::SetINIData(std::vector<std::string> *list)
 					DisplayNotification = false;
 				}
 			}
+			else if (key == "PlaySoundEffect")
+			{
+				std::string value = vec.at(1);
+				if (value == "false")
+				{
+					this->PlaySoundEffect = false;
+				}
+			}
 			else if (key == "DisplayNotificationMinDamage")
 			{
 				int value = std::atoi(vec.at(1).c_str());
@@ -286,6 +294,14 @@ void INIFile::SetINIData(std::vector<std::string> *list)
 				double value = std::atof(vec.at(1).c_str());
 				SpellDamageMultiplier = value;
 				GeneralMap.at("SpellDamageMultiplier") = (UInt32)(value * 100.0);
+			}
+			else if (key == "ImpactEffectFormID")
+			{
+				this->ImpactEffectFormID = std::strtoul(vec.at(1).c_str(), 0, 16);
+			}
+			else if (key == "SoundEffectFormID")
+			{
+				this->SoundEffectFormID = std::strtoul(vec.at(1).c_str(), 0, 16);
 			}
 			else
 			{

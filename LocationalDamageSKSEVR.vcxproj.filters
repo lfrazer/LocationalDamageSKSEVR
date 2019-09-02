@@ -16,6 +16,9 @@
     <Filter Include="Source Files\libskyrim">
       <UniqueIdentifier>{8b98d44c-b49e-419b-8433-a3f2937d095d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\CommonLibSSE">
+      <UniqueIdentifier>{be41203e-b668-431e-ae4d-b4bf649251ae}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="iniSettings.h">
@@ -55,6 +58,12 @@
     </ClCompile>
     <ClCompile Include="damagetracker.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CommonLibSSE\src\RE\BSAudioManager.cpp">
+      <Filter>Source Files\CommonLibSSE</Filter>
+    </ClCompile>
+    <ClCompile Include="CommonLibSSE\src\RE\SoundData.cpp">
+      <Filter>Source Files\CommonLibSSE</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

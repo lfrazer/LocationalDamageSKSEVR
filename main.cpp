@@ -35,6 +35,9 @@
 #include "damagetracker.h"
 #include "common.h"
 
+#include "RE/BSAudioManager.h"
+#include "RE/SoundData.h"
+
 //class Actor
 //DEFINE_MEMBER_FN(DamageActorValue, void, 0x006E0760, UInt32 unk1, UInt32 actorValueID, float damage, Actor* akAggressor);
 //class ActorProcessManager
@@ -69,7 +72,7 @@ namespace papyrusSound
 
 namespace papyrusObjRef
 {
-	typedef void(*_PlayImpactEffect)(VMClassRegistry* VMinternal, UInt32 stackId, TESObjectREFR* obj, BGSImpactDataSet* impactData, BSFixedString const &asNodeName, float afPickDirX, float afPickDirY,
+	typedef bool (*_PlayImpactEffect)(VMClassRegistry* VMinternal, UInt32 stackId, TESObjectREFR* obj, BGSImpactDataSet* impactData, BSFixedString const &asNodeName, float afPickDirX, float afPickDirY,
 		float afPickDirZ, float afPickLength, bool abApplyNodeRotation, bool abUseNodeLocalRotation);
 	RelocAddr<_PlayImpactEffect> PlayImpactEffect(PLAYIMPACTEFFECT_FN);
 }
@@ -107,6 +110,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 	UInt32 unk2, UInt8 unk3);
 
 void OnVRButtonEvent(PapyrusVR::VREventType type, PapyrusVR::EVRButtonId buttonId, PapyrusVR::VRDevice deviceId);
+void PlayTESSound(UInt32 formID);
 
 struct DoAddHook_Code : Xbyak::CodeGenerator
 {
@@ -1074,17 +1078,31 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 				}
 
 				const float impactVFXDmgCutOff = 5.0f;
-				if (done && ini.DisplayImpactEffect && fabsf(locationalDmgVal) > impactVFXDmgCutOff)
+				if (done && fabsf(locationalDmgVal) > impactVFXDmgCutOff)
 				{
-					//const UInt32 impactVFXFormID = 0xF457B; // blood spray bleed impact VFX
-					const UInt32 impactVFXFormID = 0x2C481; // DA09 light beam 01 impact VFX
-					BGSImpactDataSet* impactData = DYNAMIC_CAST(LookupFormByID(impactVFXFormID), TESForm, BGSImpactDataSet);
-
-					if (impactData)
+					if (ini.DisplayImpactEffect)
 					{
-						papyrusObjRef::PlayImpactEffect((*g_skyrimVM)->GetClassRegistry(), 0, actor, impactData, hitNodeName, 0.0f, 0.0f, -1.0f, 512.0f, false, false);
+						const UInt32 impactVFXFormID = ini.ImpactEffectFormID;
+						BGSImpactDataSet* impactData = DYNAMIC_CAST(LookupFormByID(impactVFXFormID), TESForm, BGSImpactDataSet);
+
+						if (impactData)
+						{
+							bool success = papyrusObjRef::PlayImpactEffect((*g_skyrimVM)->GetClassRegistry(), 0, actor, impactData, hitNodeName, 0.0f, 0.0f, -1.0f, 1024.0f, true, false);
+
+							if (!success)
+							{
+								_MESSAGE("PlayImpactEffect failed :(");
+							}
+						}
+					}
+
+					if (ini.PlaySoundEffect)
+					{
+						PlayTESSound(ini.SoundEffectFormID);
 					}
 				}
+
+				
 				
 			}
 		}
@@ -1172,3 +1190,46 @@ void OnVRButtonEvent(PapyrusVR::VREventType type, PapyrusVR::EVRButtonId buttonI
 
 }
 
+
+
+void PlayTESSound(UInt32 formID)
+{
+
+	auto audioManager = RE::BSAudioManager::GetSingleton();
+	//auto player = RE::PlayerCharacter::GetSingleton();
+	auto player = DYNAMIC_CAST(LookupFormByID(0x14), TESForm, Actor);
+
+
+	TESForm* soundForm = LookupFormByID(formID);
+	if (!soundForm)
+	{
+		_MESSAGE("PlayTESSound(): Invalid Sound Form ID: 0x%x", formID);
+		return;
+	}
+
+	RE::BSISoundDescriptor* soundDescriptor = (RE::BSISoundDescriptor*)DYNAMIC_CAST(soundForm, TESForm, BGSSoundDescriptorForm);
+	if (soundDescriptor)
+	{
+
+		if (audioManager->Play(soundDescriptor)) // this will call soundData::Play but without setting position
+		{
+			return;
+		}
+
+		// pointer type conversion to force compatibiilty (memory layout should be the same)
+		/*
+		RE::SoundData soundData;
+		audioManager->BuildSoundDataFromDescriptor(soundData, soundDescriptor);
+
+		if (soundData.SetPosition(*(RE::NiPoint3*)&player->pos))
+		{
+			soundData.SetNode((RE::NiNode*)player->GetNiNode());
+			soundData.Play();
+			
+			return;
+		}
+		*/
+	}
+	_MESSAGE("PlayTESSound(): Could not play SoundData.");
+	
+}
