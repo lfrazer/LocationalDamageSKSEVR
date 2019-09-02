@@ -567,7 +567,8 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 	}
 	else if (spell) // try to get spell damage
 	{
-		damage = GetSpellDamage(spell);
+		MagicItem::EffectItem* effectItem = GetDamageEffectForSpell(spell);
+		damage = g_DamageTracker.GetSpellDamageBonus(spell, effectItem, caster_actor);
 
 		damage = damage * ini.SpellDamageMultiplier;
 

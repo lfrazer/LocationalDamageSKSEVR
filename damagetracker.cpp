@@ -31,6 +31,22 @@ bool CDamageTracker::IsFromSpellsiphon(TESForm* form) const
 	return false;
 }
 
+float CDamageTracker::GetSpellDamageBonus(SpellItem* spell, MagicItem::EffectItem* effectItem, Actor* caster_actor) const
+{
+	float dmg = effectItem->magnitude;
+
+	// TODO: apply all perk modifiers for damage?
+	// apply spellsiphon perk damage modifier (based on magicka regen rate)
+	if (IsFromSpellsiphon(spell))
+	{
+		const float magickaRateMult = papyrusActor::GetActorValue((*g_skyrimVM)->GetClassRegistry(), 0, caster_actor, "MagickaRateMult");
+		//_MESSAGE("MagickaRateMult -  float = %f ",magickaRateMult);
+		dmg *= (magickaRateMult * 0.01f);
+	}
+	
+	return dmg;
+}
+
 bool CDamageTracker::RegisterAttack(SpellItem* spell, Actor* actor)
 {
 	CDamageEntry dmgEntry;
@@ -41,21 +57,11 @@ bool CDamageTracker::RegisterAttack(SpellItem* spell, Actor* actor)
 	{
 		dmgEntry.mFormType = effectItem->mgef->properties.projectile->formType;
 		dmgEntry.mFormID = effectItem->mgef->properties.projectile->formID;
-		dmgEntry.mDamage = effectItem->magnitude;
+		dmgEntry.mDamage = GetSpellDamageBonus(spell, effectItem, actor);
 		dmgEntry.mIsSpell = true;
 		dmgEntry.mKeyword = dmgKeyword;
 		dmgEntry.mProjectileName = spell->dispObj.worldStatic->texSwap.GetModelName(); //effectItem->mgef->properties.projectile->fullName.GetName();
 		
-		// TODO: apply all perk modifiers for damage?
-		// apply spellsiphon perk damage modifier (based on magicka regen rate)
-
-		if(IsFromSpellsiphon(spell))
-		{
-			const float magickaRateMult = papyrusActor::GetActorValue((*g_skyrimVM)->GetClassRegistry(), 0, actor, "MagickaRateMult");
-			//_MESSAGE("MagickaRateMult -  float = %f ",magickaRateMult);
-			dmgEntry.mDamage *= (magickaRateMult * 0.01f);
-		}
-
 		this->mDamageMap[dmgEntry.mFormType] = dmgEntry;
 
 		_DEBUGMSG("Registering spell attack FormType: %d FormID: 0x%X Damage: %f Keyword: %s ProjectileName: %s", dmgEntry.mFormType, dmgEntry.mFormID, dmgEntry.mDamage, dmgEntry.mKeyword.c_str(), dmgEntry.mProjectileName.c_str());

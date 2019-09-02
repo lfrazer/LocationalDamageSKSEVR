@@ -33,10 +33,13 @@ class CDamageTracker
 public:
 	void Init();
 	bool IsFromSpellsiphon(TESForm* form) const;
+	float GetSpellDamageBonus(SpellItem* spell, MagicItem::EffectItem* effectItem, Actor* caster_actor) const;
 
 	bool RegisterAttack(SpellItem* spell, Actor* actor);
 	bool RegisterAttack(TESObjectWEAP* weapon);
 	CDamageEntry* LookupDamageEntry(Projectile* proj);
+
+
 
 private:
 	// lookup by FormType currently.. not sure if this will work though.
