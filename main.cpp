@@ -214,12 +214,15 @@ void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 			}
 			else
 			{
+			/*
 				void * dispatchPtr = g_messaging->GetEventDispatcher(SKSEMessagingInterface::kDispatcher_ActionEvent);
 				g_skseActionEventDispatcher = (EventDispatcher<SKSEActionEvent>*)dispatchPtr;
 
 				g_skseActionEventDispatcher->AddEventSink(&g_PlayerActionEvent);
 
 				_MESSAGE("Registering PlayerActionEvent listener since SkyrimVRTools is not available.");
+			*/
+				_MESSAGE("SkyrimVRTools not found.  Disabling accurate damage tracking for spellcasting. ");
 			}
 
 			g_DamageTracker.Init();
