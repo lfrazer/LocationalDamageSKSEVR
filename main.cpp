@@ -7,6 +7,7 @@
 #include <skse64/PapyrusEvents.h>
 #include <skse64/PapyrusVM.h>
 #include <skse64/GameSettings.h>
+#include <skse64/InternalTasks.h>
 
 #include "skse64_common/skse_version.h"
 #include "skse64_common/Relocation.h"
@@ -98,6 +99,7 @@ SKSEPapyrusInterface* g_papyrus = nullptr;
 SKSEMessagingInterface* g_messaging = nullptr;
 PluginHandle g_pluginHandle = kPluginHandle_Invalid;
 PapyrusVRAPI*	g_papyrusvr = nullptr;
+SKSETaskInterface* g_task = nullptr;
 
 EventDispatcher<SKSEActionEvent>* g_skseActionEventDispatcher;
 SKSEPlayerActionEvent	g_PlayerActionEvent;
@@ -145,6 +147,21 @@ struct DoAddHook_Code : Xbyak::CodeGenerator
 		L(retnLabel);
 		dq(OnProjectileHitHookLocation.GetUIntPtr() + 0x1B);
 	}
+};
+
+
+class TaskPlayImpactVFX : public TaskDelegate
+{
+public:
+	virtual void Run() override;
+	virtual void Dispose() override;
+
+	TaskPlayImpactVFX(UInt32 formId, Actor* actor, const BSFixedString& nodeName);
+
+private:
+	UInt32 mFormId = 0;
+	Actor* mActor = nullptr;
+	BSFixedString mNodeName;
 };
 
 
@@ -297,6 +314,13 @@ extern "C" {
 			_MESSAGE("Failed to register SKSE Message handler.");
 		}
 
+		// get the task interface
+		g_task = (SKSETaskInterface*)skse->QueryInterface(kInterface_Task);
+		if (!g_task)
+		{
+			_FATALERROR("couldn't get task interface");
+			return false;
+		}
 
 		return true;
 	}
@@ -1086,23 +1110,12 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 				{
 					if (ini.DisplayImpactEffect)
 					{
-						const UInt32 impactVFXFormID = ini.ImpactEffectFormID;
-						BGSImpactDataSet* impactData = DYNAMIC_CAST(LookupFormByID(impactVFXFormID), TESForm, BGSImpactDataSet);
-
-						if (impactData)
-						{
-							bool success = papyrusObjRef::PlayImpactEffect((*g_skyrimVM)->GetClassRegistry(), 0, actor, impactData, hitNodeName, 0.0f, 0.0f, -1.0f, 1024.0f, true, false);
-
-							if (!success)
-							{
-								_MESSAGE("PlayImpactEffect failed :(");
-							}
-						}
+						g_task->AddTask(new TaskPlayImpactVFX(ini.ImpactEffectFormID, actor, hitNodeName));
 					}
 
 					if (ini.PlaySoundEffect)
 					{
-						PlayTESSound(ini.SoundEffectFormID);
+						//PlayTESSound(ini.SoundEffectFormID);
 					}
 				}
 
@@ -1192,6 +1205,39 @@ void OnVRButtonEvent(PapyrusVR::VREventType type, PapyrusVR::EVRButtonId buttonI
 
 	}
 
+}
+
+TaskPlayImpactVFX::TaskPlayImpactVFX(UInt32 formId, Actor* actor, const BSFixedString& nodeName)
+{
+	mFormId = formId;
+	mActor = actor;
+	mNodeName = nodeName;
+}
+
+
+void TaskPlayImpactVFX::Run()
+{
+	const UInt32 impactVFXFormID = mFormId;
+	BGSImpactDataSet* impactData = DYNAMIC_CAST(LookupFormByID(impactVFXFormID), TESForm, BGSImpactDataSet);
+
+	if (impactData)
+	{
+		bool success = papyrusObjRef::PlayImpactEffect((*g_skyrimVM)->GetClassRegistry(), 0, mActor, impactData, mNodeName.c_str(), 0.0f, 0.0f, -1.0f, 1024.0f, true, false);
+
+		if (!success)
+		{
+			_MESSAGE("PlayImpactEffect failed :(");
+		}
+	}
+	else
+	{
+		_MESSAGE("Could not find Impact Data FormID = 0x%x", impactVFXFormID);
+	}
+}
+
+void TaskPlayImpactVFX::Dispose()
+{
+	delete this;
 }
 
 

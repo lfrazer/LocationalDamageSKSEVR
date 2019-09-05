@@ -230,10 +230,15 @@ void INIFile::SetINIData(std::vector<std::string> *list)
 			else if (key == "PlaySoundEffect")
 			{
 				std::string value = vec.at(1);
+				if (value == "true")
+				{
+					this->PlaySoundEffect = true;
+				}
 				if (value == "false")
 				{
 					this->PlaySoundEffect = false;
 				}
+
 			}
 			else if (key == "DisplayNotificationMinDamage")
 			{
