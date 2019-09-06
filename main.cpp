@@ -35,6 +35,7 @@
 #include "iniSettings.h"
 #include "damagetracker.h"
 #include "common.h"
+#include "timer.h"
 
 #include "RE/BSAudioManager.h"
 #include "RE/SoundData.h"
@@ -104,6 +105,8 @@ SKSETaskInterface* g_task = nullptr;
 EventDispatcher<SKSEActionEvent>* g_skseActionEventDispatcher;
 SKSEPlayerActionEvent	g_PlayerActionEvent;
 CDamageTracker			g_DamageTracker;
+CTimer					g_Timer;
+double					g_LastSpellTime = 0.0;
 int						g_IsLeftHandMode = 0;
 
 typedef SpellItem EquippedSpellObject;
@@ -841,8 +844,25 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 #endif
 		}
 
-		if (!node)
+		// Stop processing if a spell was cast AND scored bonus damage in the last 1 second
+		bool spellBlockedByTimer = false;
+		if (akProjectile && akProjectile->formType != kFormType_Arrow)
+		{
+			const double kSpellTimeout = 1.0;
+			g_Timer.TimerUpdate(); // need to update this every relevant frame to setup GetLastTime()
+
+			if (g_Timer.GetLastTime() - g_LastSpellTime < kSpellTimeout)
+			{
+				spellBlockedByTimer = true;
+			}
+
+		}
+
+		if (!node || spellBlockedByTimer)
+		{
+			//_MESSAGE("node == NULL OR Spell processing blocked by timer. remaining time: %f", g_Timer.GetLastTime() - g_LastSpellTime);
 			return OnProjectileHitFunction(akProjectile, akTarget, point, unk1, unk2, unk3);
+		}
 
 		/* ref code:
 				TESNPC * actorBase = DYNAMIC_CAST((*g_thePlayer)->baseForm, TESForm, TESNPC);
@@ -1116,6 +1136,12 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 					if (ini.PlaySoundEffect)
 					{
 						//PlayTESSound(ini.SoundEffectFormID);
+					}
+
+					// track last time of spell bonus damage
+					if (projectile->formType != kFormType_Arrow)
+					{
+						g_LastSpellTime = g_Timer.GetLastTime();
 					}
 				}
 

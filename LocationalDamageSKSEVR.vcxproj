@@ -269,7 +269,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)libs_VR</AdditionalLibraryDirectories>
-      <AdditionalDependencies>skse64_common.lib;sksevr_1_4_15.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>skse64_common.lib;sksevr_1_4_15.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>exports.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -282,6 +282,7 @@
     <ClInclude Include="libskyrim\BSTHashMap.h" />
     <ClInclude Include="libskyrim\BSTScatterTable.h" />
     <ClInclude Include="libskyrim\CRC.h" />
+    <ClInclude Include="timer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CommonLibSSE\src\RE\BSAudioManager.cpp" />
@@ -290,6 +291,7 @@
     <ClCompile Include="iniSettings.cpp" />
     <ClCompile Include="libskyrim\BGSAttackData.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="timer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="sksevr\common\common_vc14.vcxproj">
