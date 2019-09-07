@@ -604,12 +604,14 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 
 		isSpell = true;
 	}
+	/*
 	else if (caster_actor)
 	{
 		damage = caster_actor->actorValueOwner.GetCurrent(35);
 	}
+	*/
 
-	if (attackData)
+	if (attackData && !isSpell)
 	{
 		damage *= attackData->damageMult;
 	}
