@@ -61,7 +61,7 @@ float CDamageTracker::GetSpellDamageBonus(SpellItem* spell, MagicItem::EffectIte
 		{
 			if (CALL_MEMBER_FN(caster_actor, HasPerk)(perk))
 			{
-				_MESSAGE("Found perk 0x%x - spell dmg mult = %f", perkBonusDmg.mPerkFormID, perkBonusDmg.mDmgMult);
+				//_MESSAGE("Found perk 0x%x - spell dmg mult = %f", perkBonusDmg.mPerkFormID, perkBonusDmg.mDmgMult);
 				return perkBonusDmg.mDmgMult;
 			}
 		}

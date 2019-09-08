@@ -1132,7 +1132,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 					break;
 				}
 
-				const float impactVFXDmgCutOff = 5.0f;
+				const float impactVFXDmgCutOff = 1.0f;
 				if (done && fabsf(locationalDmgVal) > impactVFXDmgCutOff)
 				{
 					if (ini.DisplayImpactEffect)
@@ -1255,7 +1255,7 @@ void TaskPlayImpactVFX::Run()
 
 	if (impactData)
 	{
-		bool success = papyrusObjRef::PlayImpactEffect((*g_skyrimVM)->GetClassRegistry(), 0, mActor, impactData, mNodeName.c_str(), 0.0f, 0.0f, -1.0f, 1024.0f, true, false);
+		bool success = papyrusObjRef::PlayImpactEffect((*g_skyrimVM)->GetClassRegistry(), 0, mActor, impactData, mNodeName.c_str(), 0.0f, 0.0f, -1.0f, 256.0f, true, false);
 
 		if (!success)
 		{
