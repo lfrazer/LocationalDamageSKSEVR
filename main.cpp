@@ -538,7 +538,7 @@ static SpellItem* GetCorrectSpellBySlot(Actor* player, int slot)
 
 static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObjectWEAP* weapon, EquippedSpellObject* spell, Projectile* projectile, Actor* caster_actor, TESObjectARMO* armor, MultiplierType multiplierType, const CDamageEntry* dmgEntry)
 {
-	float damage = 0.0;
+	float damage = 0.0f;
 	bool isSpell = false;
 
 	// add skill based damage to weapon bonus dmg (I'm pretty sure at least)
@@ -599,9 +599,13 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 	{
 		const char* dmgKeyword = nullptr;
 		MagicItem::EffectItem* effectItem = GetDamageEffectForSpell(spell, &dmgKeyword);
-		damage = g_DamageTracker.GetSpellDamageBonus(spell, effectItem, caster_actor, dmgKeyword);
-
-		damage = damage * ini.SpellDamageMultiplier;
+		
+		// important to check this for null (for NPCs?)
+		if(effectItem)
+		{ 
+			damage = g_DamageTracker.GetSpellDamageBonus(spell, effectItem, caster_actor, dmgKeyword);
+			damage = damage * ini.SpellDamageMultiplier;
+		}
 
 		isSpell = true;
 	}
