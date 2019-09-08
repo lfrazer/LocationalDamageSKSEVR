@@ -16,6 +16,12 @@
 #define _DEBUGMSG(...) 
 #endif
 
+struct CSpellBonusDmgPerk
+{
+	UInt32 mPerkFormID = 0;
+	float mDmgMult = 1.0f;
+};
+
 // information explaining attributes of a damage dealing spell/bow/ability
 struct CDamageEntry
 {
@@ -33,7 +39,7 @@ class CDamageTracker
 public:
 	void Init();
 	bool IsFromSpellsiphon(TESForm* form) const;
-	float GetSpellDamageBonus(SpellItem* spell, MagicItem::EffectItem* effectItem, Actor* caster_actor) const;
+	float GetSpellDamageBonus(SpellItem* spell, MagicItem::EffectItem* effectItem, Actor* caster_actor, const char* mgefKeyword) const;
 
 	bool RegisterAttack(SpellItem* spell, Actor* actor);
 	bool RegisterAttack(TESObjectWEAP* weapon);
@@ -45,6 +51,12 @@ private:
 	// lookup by FormType currently.. not sure if this will work though.
 	std::unordered_map<UInt8, CDamageEntry>	mDamageMap;
 	UInt32									mSpellsiphonModIndex = 0;
+	
+	static const int						kNumBonusDmgPerks = 2;
+
+	CSpellBonusDmgPerk						mFireDmgPerks[kNumBonusDmgPerks];
+	CSpellBonusDmgPerk						mFrostDmgPerks[kNumBonusDmgPerks];
+	CSpellBonusDmgPerk						mShockDmgPerks[kNumBonusDmgPerks];
 };
 
 

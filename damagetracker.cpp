@@ -19,6 +19,16 @@ void CDamageTracker::Init()
 		mSpellsiphonModIndex = ssModInfo->GetPartialIndex();
 		_MESSAGE("Found spellsiphon mod! Idx = %d", mSpellsiphonModIndex);
 	}
+
+	// form ID then damage mult - descending order so the code can check for the higher damage perk first
+	mFireDmgPerks[0] = {0x0010FCF8, 1.5f };
+	mFireDmgPerks[1] = {0x000581E7, 1.25f};
+
+	mFrostDmgPerks[0] = {0x0010FCF9, 1.5f };
+	mFrostDmgPerks[1] = {0x000581EA, 1.25f };
+
+	mShockDmgPerks[0] = {0x0010FCFA, 1.5f};
+	mShockDmgPerks[1] = {0x00058200, 1.25f };
 }
 
 bool CDamageTracker::IsFromSpellsiphon(TESForm* form) const
@@ -31,11 +41,11 @@ bool CDamageTracker::IsFromSpellsiphon(TESForm* form) const
 	return false;
 }
 
-float CDamageTracker::GetSpellDamageBonus(SpellItem* spell, MagicItem::EffectItem* effectItem, Actor* caster_actor) const
+float CDamageTracker::GetSpellDamageBonus(SpellItem* spell, MagicItem::EffectItem* effectItem, Actor* caster_actor, const char* mgefKeyword) const
 {
 	float dmg = effectItem->magnitude;
 
-	// TODO: apply all perk modifiers for damage?
+
 	// apply spellsiphon perk damage modifier (based on magicka regen rate)
 	if (IsFromSpellsiphon(spell))
 	{
@@ -44,6 +54,59 @@ float CDamageTracker::GetSpellDamageBonus(SpellItem* spell, MagicItem::EffectIte
 		dmg *= (magickaRateMult * 0.01f);
 	}
 	
+	auto GetPerkBonusDmg = [caster_actor](const CSpellBonusDmgPerk& perkBonusDmg) -> float
+	{
+		BGSPerk* perk = DYNAMIC_CAST(LookupFormByID(perkBonusDmg.mPerkFormID), TESForm, BGSPerk);
+		if (perk)
+		{
+			if (CALL_MEMBER_FN(caster_actor, HasPerk)(perk))
+			{
+				_MESSAGE("Found perk 0x%x - spell dmg mult = %f", perkBonusDmg.mPerkFormID, perkBonusDmg.mDmgMult);
+				return perkBonusDmg.mDmgMult;
+			}
+		}
+
+		return 1.0f;
+	};
+
+	// apply all perk modifiers for damage
+	if (strstr(mgefKeyword, "Fire"))
+	{
+		for (int i = 0; i < kNumBonusDmgPerks; ++i)
+		{
+			float spellDmgMult = GetPerkBonusDmg(mFireDmgPerks[i]);
+			if (spellDmgMult > 1.0f)
+			{
+				dmg *= spellDmgMult;
+				break;
+			}
+		}
+	}
+	else if (strstr(mgefKeyword, "Frost"))
+	{
+		for (int i = 0; i < kNumBonusDmgPerks; ++i)
+		{
+			float spellDmgMult = GetPerkBonusDmg(mFrostDmgPerks[i]);
+			if (spellDmgMult > 1.0f)
+			{
+				dmg *= spellDmgMult;
+				break;
+			}
+		}
+	}
+	else if (strstr(mgefKeyword, "Shock"))
+	{
+		for (int i = 0; i < kNumBonusDmgPerks; ++i)
+		{
+			float spellDmgMult = GetPerkBonusDmg(mShockDmgPerks[i]);
+			if (spellDmgMult > 1.0f)
+			{
+				dmg *= spellDmgMult;
+				break;
+			}
+		}
+	}
+
 	return dmg;
 }
 
@@ -57,7 +120,7 @@ bool CDamageTracker::RegisterAttack(SpellItem* spell, Actor* actor)
 	{
 		dmgEntry.mFormType = effectItem->mgef->properties.projectile->formType;
 		dmgEntry.mFormID = effectItem->mgef->properties.projectile->formID;
-		dmgEntry.mDamage = GetSpellDamageBonus(spell, effectItem, actor);
+		dmgEntry.mDamage = GetSpellDamageBonus(spell, effectItem, actor, dmgKeyword);
 		dmgEntry.mIsSpell = true;
 		dmgEntry.mKeyword = dmgKeyword;
 		dmgEntry.mProjectileName = spell->dispObj.worldStatic->texSwap.GetModelName(); //effectItem->mgef->properties.projectile->fullName.GetName();
