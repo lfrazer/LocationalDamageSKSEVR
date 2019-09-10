@@ -1251,21 +1251,30 @@ TaskPlayImpactVFX::TaskPlayImpactVFX(UInt32 formId, Actor* actor, const BSFixedS
 void TaskPlayImpactVFX::Run()
 {
 	const UInt32 impactVFXFormID = mFormId;
-	BGSImpactDataSet* impactData = DYNAMIC_CAST(LookupFormByID(impactVFXFormID), TESForm, BGSImpactDataSet);
-
-	if (impactData)
+	auto* impactForm = LookupFormByID(impactVFXFormID);
+	if (impactForm)
 	{
-		bool success = papyrusObjRef::PlayImpactEffect((*g_skyrimVM)->GetClassRegistry(), 0, mActor, impactData, mNodeName.c_str(), 0.0f, 0.0f, -1.0f, 256.0f, true, false);
+		BGSImpactDataSet* impactData = DYNAMIC_CAST(impactForm, TESForm, BGSImpactDataSet);
 
-		if (!success)
+		if (impactData)
 		{
-			_MESSAGE("PlayImpactEffect failed :(");
+			bool success = papyrusObjRef::PlayImpactEffect((*g_skyrimVM)->GetClassRegistry(), 0, mActor, impactData, mNodeName.c_str(), 0.0f, 0.0f, -1.0f, 512.0f, true, false);
+
+			if (!success)
+			{
+				_MESSAGE("PlayImpactEffect failed :(");
+			}
+		}
+		else
+		{
+			_MESSAGE("Could not cast from Form to Impact Data FormID = 0x%x", impactVFXFormID);
 		}
 	}
 	else
 	{
-		_MESSAGE("Could not find Impact Data FormID = 0x%x", impactVFXFormID);
+		_MESSAGE("Could not lookup impact data FormID = 0x%x", impactVFXFormID);
 	}
+
 }
 
 void TaskPlayImpactVFX::Dispose()
