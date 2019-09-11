@@ -52,6 +52,15 @@ float CDamageTracker::GetSpellDamageBonus(SpellItem* spell, MagicItem::EffectIte
 		const float magickaRateMult = papyrusActor::GetActorValue((*g_skyrimVM)->GetClassRegistry(), 0, caster_actor, "MagickaRateMult");
 		//_MESSAGE("MagickaRateMult -  float = %f ",magickaRateMult);
 		dmg *= (magickaRateMult * 0.01f);
+
+		// look for "elemental overload" perk for weaving circle
+		const UInt32 elementalOverloadPerkID = (mSpellsiphonModIndex << 24) | kSpellsiphonElementalOverloadPerkID;
+		BGSPerk* perk = DYNAMIC_CAST(LookupFormByID(elementalOverloadPerkID), TESForm, BGSPerk);
+
+		if (perk && CALL_MEMBER_FN(caster_actor, HasPerk)(perk))
+		{
+			dmg *= 2.0f;
+		}
 	}
 	
 	auto GetPerkBonusDmg = [caster_actor](const CSpellBonusDmgPerk& perkBonusDmg) -> float

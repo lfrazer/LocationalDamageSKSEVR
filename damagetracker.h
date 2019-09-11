@@ -53,6 +53,7 @@ private:
 	UInt32									mSpellsiphonModIndex = 0;
 	
 	static const int						kNumBonusDmgPerks = 2;
+	static const unsigned int				kSpellsiphonElementalOverloadPerkID = 0x0027448A;
 
 	CSpellBonusDmgPerk						mFireDmgPerks[kNumBonusDmgPerks];
 	CSpellBonusDmgPerk						mFrostDmgPerks[kNumBonusDmgPerks];
