@@ -11,6 +11,8 @@
 #include "iniSettings.h"
 #include <algorithm>
 
+#include <skse64/GameData.h>
+
 INIFile ini;
 
 INIFile::INIFile() : EnableHead(true), EnableArms(true), EnableFoot(true), EnableHeart(true), DamageTypeHead(1), DamageTypeArms(2), DamageTypeFoot(4), DamageTypeHeart(1), EffectTypeHead(0),
@@ -64,6 +66,14 @@ LightArmorEffectChanceMultiplier(0.6)
 
 void INIFile::Load()
 {
+	// default impact data set
+	const ModInfo* DGModInfo = DataHandler::GetSingleton()->LookupModByName("Dawnguard.esm");
+	if (DGModInfo)
+	{
+		UInt32 dawnguardModIndex = DGModInfo->GetPartialIndex();
+		ImpactEffectFormID = (dawnguardModIndex << 24) | DEFAULT_IMPACTEFFECT_FORMID; // default to vampire drain VFX
+	}
+
 	std::string iniFilePath = GetINIFile();
 	bool fileFound = IsFoundFile(iniFilePath.c_str());
 

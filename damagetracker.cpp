@@ -11,6 +11,18 @@ namespace papyrusActor
 
 void CDamageTracker::Init()
 {
+	const ModInfo* DGModInfo = DataHandler::GetSingleton()->LookupModByName("Dawnguard.esm");
+	if (DGModInfo)
+	{
+		mDawnguardModIndex = DGModInfo->GetPartialIndex();
+	}
+
+	const ModInfo* dragonbornModInfo = DataHandler::GetSingleton()->LookupModByName("Dragonborn.esm");
+	if (dragonbornModInfo)
+	{
+		mDragonbornModIndex = dragonbornModInfo->GetPartialIndex();
+	}
+
 	const char* spellsiphonESP = "Spellsiphon.esp";
 	const ModInfo* ssModInfo = DataHandler::GetSingleton()->LookupModByName(spellsiphonESP);
 	

@@ -88,5 +88,5 @@ namespace SoundData
 #endif
 
 
-#define DEFAULT_IMPACTEFFECT_FORMID	0x105F37  // staff of magnus
+#define DEFAULT_IMPACTEFFECT_FORMID	0x1A3FB // vampire drain (from dawngaurd esm - setup in constructor)
 #define DEFAULT_SOUNDEFFECT_FORMID 0x3EDDA // ImpactAxeLargeVSFlesh

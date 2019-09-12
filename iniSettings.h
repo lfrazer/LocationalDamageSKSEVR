@@ -48,7 +48,7 @@ public:
 	UInt32 UnequipWeaponBaseChance;
 
 	UInt32 SoundEffectFormID = DEFAULT_SOUNDEFFECT_FORMID;
-	UInt32 ImpactEffectFormID = DEFAULT_IMPACTEFFECT_FORMID;
+	UInt32 ImpactEffectFormID = 0; // will be set in constructor based on mod index
 
 	bool DisplayImpactEffect;
 	bool DisplayNotification;

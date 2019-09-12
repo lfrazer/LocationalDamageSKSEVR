@@ -50,6 +50,9 @@ public:
 private:
 	// lookup by FormType currently.. not sure if this will work though.
 	std::unordered_map<UInt8, CDamageEntry>	mDamageMap;
+
+	UInt32									mDawnguardModIndex = 0;
+	UInt32									mDragonbornModIndex = 0;
 	UInt32									mSpellsiphonModIndex = 0;
 	
 	static const int						kNumBonusDmgPerks = 2;

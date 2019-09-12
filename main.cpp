@@ -1258,12 +1258,17 @@ void TaskPlayImpactVFX::Run()
 
 		if (impactData)
 		{
-			bool success = papyrusObjRef::PlayImpactEffect((*g_skyrimVM)->GetClassRegistry(), 0, mActor, impactData, mNodeName.c_str(), 0.0f, 0.0f, -1.0f, 512.0f, true, false);
+			// bool success = papyrusObjRef::PlayImpactEffect((*g_skyrimVM)->GetClassRegistry(), 0, mActor, impactData, mNodeName.c_str(), 0.0f, 0.0f, -1.0f, 512.0f, true, false);
+			
+			// thanks to shizof for fixed version that always plays at head
+			bool success = papyrusObjRef::PlayImpactEffect((*g_skyrimVM)->GetClassRegistry(), 0, mActor, impactData, mNodeName.c_str(), 0.0f, 0.0f, 0.0f, 1.0f, false, false);
 
+			/*
 			if (!success)
 			{
 				_MESSAGE("PlayImpactEffect failed :(");
 			}
+			*/
 		}
 		else
 		{
