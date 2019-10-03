@@ -144,8 +144,12 @@ bool CDamageTracker::RegisterAttack(SpellItem* spell, Actor* actor)
 		dmgEntry.mDamage = GetSpellDamageBonus(spell, effectItem, actor, dmgKeyword);
 		dmgEntry.mIsSpell = true;
 		dmgEntry.mKeyword = dmgKeyword;
-		dmgEntry.mProjectileName = spell->dispObj.worldStatic->texSwap.GetModelName(); //effectItem->mgef->properties.projectile->fullName.GetName();
-		
+
+		if (spell->dispObj.worldStatic != nullptr)
+		{
+			dmgEntry.mProjectileName = spell->dispObj.worldStatic->texSwap.GetModelName(); //effectItem->mgef->properties.projectile->fullName.GetName();
+		}
+
 		this->mDamageMap[dmgEntry.mFormType] = dmgEntry;
 
 		_DEBUGMSG("Registering spell attack FormType: %d FormID: 0x%X Damage: %f Keyword: %s ProjectileName: %s", dmgEntry.mFormType, dmgEntry.mFormID, dmgEntry.mDamage, dmgEntry.mKeyword.c_str(), dmgEntry.mProjectileName.c_str());
