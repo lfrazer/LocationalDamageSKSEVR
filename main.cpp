@@ -601,13 +601,14 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 		MagicItem::EffectItem* effectItem = GetDamageEffectForSpell(spell, &dmgKeyword);
 		
 		// important to check this for null (for NPCs?)
-		if(effectItem)
+		// additional safety check (some special case weapons like Dawnbreaker seem to have spell effects attached to them..?)
+		if (effectItem && effectItem->mgef && effectItem->mgef->properties.projectile)
 		{ 
 			damage = g_DamageTracker.GetSpellDamageBonus(spell, effectItem, caster_actor, dmgKeyword);
 			damage = damage * ini.SpellDamageMultiplier;
-		}
 
-		isSpell = true;
+			isSpell = true;
+		}
 	}
 	/*
 	else if (caster_actor)

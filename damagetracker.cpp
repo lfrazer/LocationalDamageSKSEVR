@@ -137,7 +137,8 @@ bool CDamageTracker::RegisterAttack(SpellItem* spell, Actor* actor)
 	const char* dmgKeyword;
 
 	MagicItem::EffectItem* effectItem = GetDamageEffectForSpell(spell, &dmgKeyword);
-	if (effectItem)
+	// additional safety check (some special case weapons like Dawnbreaker seem to have spell effects attached to them..?)
+	if (effectItem && effectItem->mgef && effectItem->mgef->properties.projectile)
 	{
 		dmgEntry.mFormType = effectItem->mgef->properties.projectile->formType;
 		dmgEntry.mFormID = effectItem->mgef->properties.projectile->formID;
