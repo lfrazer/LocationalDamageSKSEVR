@@ -63,6 +63,12 @@ namespace Offset
 #define PUSHACTORAWAY_FN										0x00996340
 #define DEBUGNOTIFICATION_FN									0x0096DDB0
 
+// TODO: verify these
+#define GETACTORVALUE_FN										0x0094AA70
+#define PLAYSOUND_FN											0x009B4620
+#define PLAYIMPACTEFFECT_FN										0x00995BA0
+
+
 // From CommonLibSE  -> Thanks to Ryan SniffleMan!
 namespace BSAudioManager
 {

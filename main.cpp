@@ -37,8 +37,10 @@
 #include "common.h"
 #include "timer.h"
 
+#ifdef SKYRIMVR
 #include "RE/BSAudioManager.h"
 #include "RE/SoundData.h"
+#endif
 
 //class Actor
 //DEFINE_MEMBER_FN(DamageActorValue, void, 0x006E0760, UInt32 unk1, UInt32 actorValueID, float damage, Actor* akAggressor);
@@ -1289,7 +1291,7 @@ void TaskPlayImpactVFX::Dispose()
 }
 
 
-
+#ifdef SKYRIMVR
 void PlayTESSound(UInt32 formID)
 {
 
@@ -1331,3 +1333,4 @@ void PlayTESSound(UInt32 formID)
 	_MESSAGE("PlayTESSound(): Could not play SoundData.");
 	
 }
+#endif
