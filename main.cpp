@@ -36,6 +36,7 @@
 #include "damagetracker.h"
 #include "common.h"
 #include "timer.h"
+#include "skse64/GameData.h"
 
 #ifdef SKYRIMVR
 #include "RE/BSAudioManager.h"
@@ -118,6 +119,8 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 void OnVRButtonEvent(PapyrusVR::VREventType type, PapyrusVR::EVRButtonId buttonId, PapyrusVR::VRDevice deviceId);
 void PlayTESSound(UInt32 formID);
+
+void LoadModForms();
 
 struct DoAddHook_Code : Xbyak::CodeGenerator
 {
@@ -254,6 +257,14 @@ void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 		case SKSEMessagingInterface::kMessage_InputLoaded:
 		{
 			_MESSAGE("SKSE Message: Input Loaded");
+			break;
+		}
+		case SKSEMessagingInterface::kMessage_PostLoadGame:
+		{
+			if ((bool)(msg->data) == true)
+			{
+				LoadModForms();
+			}
 			break;
 		}
 	}
@@ -772,6 +783,67 @@ static void ApplyLocationalEffect(Actor* actor, UInt32 effectType, float chance,
 	*/
 }
 
+//WeaponThrowVR support
+UInt32 rightProjectileFullFormId = 0x000000;
+UInt32 leftProjectileFullFormId = 0x000000;
+TESObjectWEAP * rightWeaponBow;
+TESObjectWEAP * leftWeaponBow;
+
+void LoadModForms()
+{
+	DataHandler * dataHandler = DataHandler::GetSingleton();
+
+	if (dataHandler)
+	{
+		const ModInfo * modInfo = dataHandler->LookupModByName("WeaponThrowVR.esp");
+
+		if (modInfo)
+		{
+			if (modInfo->modIndex > 0 && modInfo->modIndex != 0xFF) //If plugin is in the load order.
+			{
+				const UInt32 rightProjectileFormId = 0x000800;
+				const UInt32 leftProjectileFormId = 0x000DA4;
+
+				rightProjectileFullFormId = (modInfo->modIndex << 24) | (rightProjectileFormId & 0x00FFFFFF);
+				leftProjectileFullFormId = (modInfo->modIndex << 24) | (leftProjectileFormId & 0x00FFFFFF);
+
+				const UInt32 rightWeaponBowFormId = 0x000DA1;
+				const UInt32 leftWeaponBowFormId = 0x000DA2;
+
+				const UInt32 rightWeaponBowFullFormId = (modInfo->modIndex << 24) | (rightWeaponBowFormId & 0x00FFFFFF);
+				const UInt32 leftWeaponBowFullFormId = (modInfo->modIndex << 24) | (leftWeaponBowFormId & 0x00FFFFFF);
+
+				TESForm * form = nullptr;
+				if (rightWeaponBowFullFormId > 0)
+				{
+					form = nullptr;
+					form = LookupFormByID(rightWeaponBowFullFormId);
+					if (form)
+					{
+						if (form)
+						{
+							rightWeaponBow = DYNAMIC_CAST(form, TESForm, TESObjectWEAP);
+						}
+					}
+				}
+
+				if (leftWeaponBowFullFormId > 0)
+				{
+					form = nullptr;
+					form = LookupFormByID(leftWeaponBowFullFormId);
+					if (form)
+					{
+						if (form)
+						{
+							leftWeaponBow = DYNAMIC_CAST(form, TESForm, TESObjectWEAP);
+						}
+					}
+				}
+				_MESSAGE("Found WeaponThrowVR. Registered formids.");
+			}
+		}
+	}
+}
 // Skyrim SE hook:
 // typedef int64_t (*_OnProjectileHitFunction)(Projectile* akProjectile, TESObjectREFR* akTarget, NiPoint3* point,                                        
  //   UInt32 unk1, UInt32 unk2, UInt8 unk3);
@@ -810,7 +882,6 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 {
 	if (akProjectile != nullptr && akTarget != nullptr) //&& akProjectile->formType == kFormType_Arrow)
 	{
-
 		//TESObjectCELL* cell = (TESObjectCELL*)stack[1];
 		//if (!cell)
 		//	return;
@@ -937,8 +1008,11 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 			if (projectile)
 			{
+				const bool ThrownWeaponLeft = projectile->baseForm ? (projectile->baseForm->formID == leftProjectileFullFormId) : false;
+				const bool ThrownWeaponRight = projectile->baseForm ? (projectile->baseForm->formID == rightProjectileFullFormId) : false;
+				
 				UInt32* handle = Projectile_GetActorCauseFn(projectile);
-
+				
 #ifdef SKYRIMVR
 				TESObjectREFR* refCaster = nullptr;
 #else
@@ -947,7 +1021,6 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 				if (handle && *handle != *g_invalidRefHandle)
 				{
-
 #ifdef SKYRIMVR
 					LookupREFRByHandle(handle, &refCaster); // SKSE_VR takes handle ptr here, not ref? - also 2nd arg is ptr to ptr (**) not NiPointer template
 
@@ -965,7 +1038,14 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 				Actor* caster_actor = nullptr;
 				if (caster_ref)
+				{
 					caster_actor = DYNAMIC_CAST(caster_ref, TESObjectREFR, Actor);
+				}
+				
+				if(ThrownWeaponLeft || ThrownWeaponRight)
+				{
+					caster_actor = (*g_thePlayer);
+				}
 
 				// check if we have valid castor actor
 				if (caster_actor)
@@ -977,28 +1057,43 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 					}
 
 					// IF this was an arrow projectile, try to get weapon
-					if (akProjectile->formType == kFormType_Arrow)
+					if (ThrownWeaponLeft || ThrownWeaponRight)
 					{
-						TESForm* equippedForm = caster_actor->GetEquippedObject(false);
-						weapon = DYNAMIC_CAST(equippedForm, TESForm, TESObjectWEAP);
-
-						// try the other hand too
-						if (!weapon)
+						//WeaponThrowVR support
+						if(ThrownWeaponRight && rightWeaponBow)
 						{
-							equippedForm = caster_actor->GetEquippedObject(true);
-							weapon = DYNAMIC_CAST(equippedForm, TESForm, TESObjectWEAP);
+							weapon = rightWeaponBow;
+						}
+						else if(ThrownWeaponLeft && leftWeaponBow)
+						{
+							weapon = leftWeaponBow;
 						}
 					}
-					else // otherwise this should be a spell cast
+					else
 					{
-						// at this point we just guess and hope we grab the right spell (TODO: this could be improved a lot)
-						TESForm* equippedForm = caster_actor->GetEquippedObject(false);
-						spell = DYNAMIC_CAST(equippedForm, TESForm, SpellItem);
-
-						if (!spell || GetSpellDamage(spell) <= 0.0f) // if right hand was not a spell OR the spell damage was 0, try left hand
+						if (akProjectile->formType == kFormType_Arrow)
 						{
-							TESForm* equippedForm = caster_actor->GetEquippedObject(true);
+							TESForm* equippedForm = caster_actor->GetEquippedObject(false);
+							weapon = DYNAMIC_CAST(equippedForm, TESForm, TESObjectWEAP);
+
+							// try the other hand too
+							if (!weapon)
+							{
+								equippedForm = caster_actor->GetEquippedObject(true);
+								weapon = DYNAMIC_CAST(equippedForm, TESForm, TESObjectWEAP);
+							}
+						}
+						else // otherwise this should be a spell cast
+						{
+							// at this point we just guess and hope we grab the right spell (TODO: this could be improved a lot)
+							TESForm* equippedForm = caster_actor->GetEquippedObject(false);
 							spell = DYNAMIC_CAST(equippedForm, TESForm, SpellItem);
+
+							if (!spell || GetSpellDamage(spell) <= 0.0f) // if right hand was not a spell OR the spell damage was 0, try left hand
+							{
+								TESForm* equippedForm = caster_actor->GetEquippedObject(true);
+								spell = DYNAMIC_CAST(equippedForm, TESForm, SpellItem);
+							}
 						}
 					}
 				}
@@ -1153,14 +1248,11 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 					{
 						g_LastSpellTime = g_Timer.GetLastTime();
 					}
-				}
-
-				
-				
+				}				
 			}
 		}
 	}
-
+	
 	return OnProjectileHitFunction(akProjectile, akTarget, point, unk1, unk2, unk3);
 }
 
