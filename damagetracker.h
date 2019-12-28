@@ -20,6 +20,17 @@ struct CSpellBonusDmgPerk
 {
 	UInt32 mPerkFormID = 0;
 	float mDmgMult = 1.0f;
+
+	CSpellBonusDmgPerk(UInt32 formid, float dmgmult)
+	{
+		mPerkFormID = formid;
+		mDmgMult = dmgmult;
+	}
+
+	CSpellBonusDmgPerk()
+	{
+
+	}
 };
 
 // information explaining attributes of a damage dealing spell/bow/ability
@@ -37,6 +48,8 @@ struct CDamageEntry
 class CDamageTracker
 {
 public:
+	CDamageTracker(void) {}
+
 	void Init();
 	bool IsFromSpellsiphon(TESForm* form) const;
 	float GetSpellDamageBonus(SpellItem* spell, MagicItem::EffectItem* effectItem, Actor* caster_actor, const char* mgefKeyword) const;

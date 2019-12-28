@@ -33,8 +33,8 @@ void CDamageTracker::Init()
 	}
 
 	// form ID then damage mult - descending order so the code can check for the higher damage perk first
-	mFireDmgPerks[0] = {0x0010FCF8, 1.5f };
-	mFireDmgPerks[1] = {0x000581E7, 1.25f};
+	mFireDmgPerks[0] = { 0x0010FCF8, 1.5f };
+	mFireDmgPerks[1] = { 0x000581E7, 1.25f };
 
 	mFrostDmgPerks[0] = {0x0010FCF9, 1.5f };
 	mFrostDmgPerks[1] = {0x000581EA, 1.25f };

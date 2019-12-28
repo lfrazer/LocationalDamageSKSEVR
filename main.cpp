@@ -39,8 +39,8 @@
 #include "skse64/GameData.h"
 
 #ifdef SKYRIMVR
-#include "RE/BSAudioManager.h"
-#include "RE/SoundData.h"
+//#include "RE/BSAudioManager.h"
+//#include "RE/SoundData.h"
 #endif
 
 //class Actor
@@ -1013,20 +1013,13 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 				
 				UInt32* handle = Projectile_GetActorCauseFn(projectile);
 				
-#ifdef SKYRIMVR
-				TESObjectREFR* refCaster = nullptr;
-#else
+
 				NiPointer<TESObjectREFR> refCaster = nullptr;
-#endif
 
 				if (handle && *handle != *g_invalidRefHandle)
 				{
-#ifdef SKYRIMVR
-					LookupREFRByHandle(handle, &refCaster); // SKSE_VR takes handle ptr here, not ref? - also 2nd arg is ptr to ptr (**) not NiPointer template
 
-#else
 					LookupREFRByHandle(*handle, refCaster);
-#endif
 
 					caster_ref = (TESObjectREFR*)refCaster;
 				}
@@ -1383,7 +1376,8 @@ void TaskPlayImpactVFX::Dispose()
 }
 
 
-#ifdef SKYRIMVR
+// exclude sound code for now..
+#if 0 //SKYRIMVR
 void PlayTESSound(UInt32 formID)
 {
 
@@ -1426,3 +1420,4 @@ void PlayTESSound(UInt32 formID)
 	
 }
 #endif
+
