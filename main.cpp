@@ -120,7 +120,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 void OnVRButtonEvent(PapyrusVR::VREventType type, PapyrusVR::EVRButtonId buttonId, PapyrusVR::VRDevice deviceId);
 void PlayTESSound(UInt32 formID);
 
-void LoadModForms();
+void LoadWeaponThrowModForms();
 
 struct DoAddHook_Code : Xbyak::CodeGenerator
 {
@@ -190,6 +190,7 @@ void OnPapyrusVRMessage(SKSEMessagingInterface::Message* msg)
 void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 {
 	static bool bVRToolsListenerValid = false;
+	static const size_t TRAMPOLINE_SIZE = 256;
 
 	switch (msg->type)
 	{
@@ -206,13 +207,13 @@ void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 
 			ini.Load();
 
-			if (!g_branchTrampoline.Create(1024 * 64))
+			if (!g_branchTrampoline.Create(TRAMPOLINE_SIZE))  // don't need such large buffers
 			{
 				_FATALERROR("[ERROR] couldn't create branch trampoline. this is fatal. skipping remainder of init process.");
 				return;
 			}
 
-			if (!g_localTrampoline.Create(1024 * 64, nullptr))
+			if (!g_localTrampoline.Create(TRAMPOLINE_SIZE, nullptr))
 			{
 				_FATALERROR("[ERROR] couldn't create codegen buffer. this is fatal. skipping remainder of init process.");
 				return;
@@ -261,9 +262,9 @@ void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 		}
 		case SKSEMessagingInterface::kMessage_PostLoadGame:
 		{
-			if ((bool)(msg->data) == true)
+			if (msg->data != nullptr)
 			{
-				LoadModForms();
+				LoadWeaponThrowModForms();
 			}
 			break;
 		}
@@ -784,12 +785,12 @@ static void ApplyLocationalEffect(Actor* actor, UInt32 effectType, float chance,
 }
 
 //WeaponThrowVR support
-UInt32 rightProjectileFullFormId = 0x000000;
-UInt32 leftProjectileFullFormId = 0x000000;
-TESObjectWEAP * rightWeaponBow;
-TESObjectWEAP * leftWeaponBow;
+UInt32 weapThrowRightProjectileFullFormId = 0x000000;
+UInt32 weapThrowLeftProjectileFullFormId = 0x000000;
+TESObjectWEAP * weapThrowRightWeaponBow;
+TESObjectWEAP * weapThrowLeftWeaponBow;
 
-void LoadModForms()
+void LoadWeaponThrowModForms()
 {
 	DataHandler * dataHandler = DataHandler::GetSingleton();
 
@@ -804,8 +805,8 @@ void LoadModForms()
 				const UInt32 rightProjectileFormId = 0x000800;
 				const UInt32 leftProjectileFormId = 0x000DA4;
 
-				rightProjectileFullFormId = (modInfo->modIndex << 24) | (rightProjectileFormId & 0x00FFFFFF);
-				leftProjectileFullFormId = (modInfo->modIndex << 24) | (leftProjectileFormId & 0x00FFFFFF);
+				weapThrowRightProjectileFullFormId = (modInfo->modIndex << 24) | (rightProjectileFormId & 0x00FFFFFF);
+				weapThrowLeftProjectileFullFormId = (modInfo->modIndex << 24) | (leftProjectileFormId & 0x00FFFFFF);
 
 				const UInt32 rightWeaponBowFormId = 0x000DA1;
 				const UInt32 leftWeaponBowFormId = 0x000DA2;
@@ -822,7 +823,7 @@ void LoadModForms()
 					{
 						if (form)
 						{
-							rightWeaponBow = DYNAMIC_CAST(form, TESForm, TESObjectWEAP);
+							weapThrowRightWeaponBow = DYNAMIC_CAST(form, TESForm, TESObjectWEAP);
 						}
 					}
 				}
@@ -835,7 +836,7 @@ void LoadModForms()
 					{
 						if (form)
 						{
-							leftWeaponBow = DYNAMIC_CAST(form, TESForm, TESObjectWEAP);
+							weapThrowLeftWeaponBow = DYNAMIC_CAST(form, TESForm, TESObjectWEAP);
 						}
 					}
 				}
@@ -1008,8 +1009,8 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 			if (projectile)
 			{
-				const bool ThrownWeaponLeft = projectile->baseForm ? (projectile->baseForm->formID == leftProjectileFullFormId) : false;
-				const bool ThrownWeaponRight = projectile->baseForm ? (projectile->baseForm->formID == rightProjectileFullFormId) : false;
+				const bool ThrownWeaponLeft = projectile->baseForm ? (projectile->baseForm->formID == weapThrowLeftProjectileFullFormId) : false;
+				const bool ThrownWeaponRight = projectile->baseForm ? (projectile->baseForm->formID == weapThrowRightProjectileFullFormId) : false;
 				
 				UInt32* handle = Projectile_GetActorCauseFn(projectile);
 				
@@ -1043,8 +1044,8 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 				// check if we have valid castor actor
 				if (caster_actor)
 				{
-					// if caster_actor was the player, try to get damage entry
-					if (caster_actor == *g_thePlayer)
+					// if caster_actor was the player, try to get damage entry (as long as it was not a thrown weapon)
+					if (caster_actor == *g_thePlayer && !(ThrownWeaponLeft || ThrownWeaponRight))
 					{
 						dmgEntry = g_DamageTracker.LookupDamageEntry(projectile);
 					}
@@ -1053,13 +1054,13 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 					if (ThrownWeaponLeft || ThrownWeaponRight)
 					{
 						//WeaponThrowVR support
-						if(ThrownWeaponRight && rightWeaponBow)
+						if(ThrownWeaponRight && weapThrowRightWeaponBow)
 						{
-							weapon = rightWeaponBow;
+							weapon = weapThrowRightWeaponBow;
 						}
-						else if(ThrownWeaponLeft && leftWeaponBow)
+						else if(ThrownWeaponLeft && weapThrowLeftWeaponBow)
 						{
-							weapon = leftWeaponBow;
+							weapon = weapThrowLeftWeaponBow;
 						}
 					}
 					else
