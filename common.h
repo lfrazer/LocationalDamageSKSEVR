@@ -11,6 +11,13 @@
 #include <skse64/GameObjects.h>
 #include <skse64/GameExtraData.h>
 
+#define EXTRA_DEBUG_LOG 0
+
+#if EXTRA_DEBUG_LOG || defined(_DEBUG)
+#define _DEBUGMSG _MESSAGE
+#else
+#define _DEBUGMSG(...) 
+#endif
 
 #ifdef SKYRIMVR
 

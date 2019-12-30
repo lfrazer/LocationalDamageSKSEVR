@@ -282,6 +282,7 @@
     <ClInclude Include="libskyrim\BSTHashMap.h" />
     <ClInclude Include="libskyrim\BSTScatterTable.h" />
     <ClInclude Include="libskyrim\CRC.h" />
+    <ClInclude Include="throwtracker.h" />
     <ClInclude Include="timer.h" />
   </ItemGroup>
   <ItemGroup>
@@ -289,6 +290,7 @@
     <ClCompile Include="iniSettings.cpp" />
     <ClCompile Include="libskyrim\BGSAttackData.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="throwtracker.cpp" />
     <ClCompile Include="timer.cpp" />
   </ItemGroup>
   <ItemGroup>

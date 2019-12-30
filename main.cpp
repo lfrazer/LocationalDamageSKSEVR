@@ -34,6 +34,7 @@
 
 #include "iniSettings.h"
 #include "damagetracker.h"
+#include "throwtracker.h"
 #include "common.h"
 #include "timer.h"
 #include "skse64/GameData.h"
@@ -108,6 +109,7 @@ SKSETaskInterface* g_task = nullptr;
 EventDispatcher<SKSEActionEvent>* g_skseActionEventDispatcher;
 SKSEPlayerActionEvent	g_PlayerActionEvent;
 CDamageTracker			g_DamageTracker;
+CThrowTracker			g_ThrowTracker; // WeaponThrowVR support - track thrown weapons
 CTimer					g_Timer;
 double					g_LastSpellTime = 0.0;
 int						g_IsLeftHandMode = 0;
@@ -119,8 +121,6 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 void OnVRButtonEvent(PapyrusVR::VREventType type, PapyrusVR::EVRButtonId buttonId, PapyrusVR::VRDevice deviceId);
 void PlayTESSound(UInt32 formID);
-
-void LoadWeaponThrowModForms();
 
 struct DoAddHook_Code : Xbyak::CodeGenerator
 {
@@ -264,7 +264,7 @@ void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 		{
 			if (msg->data != nullptr)
 			{
-				LoadWeaponThrowModForms();
+				g_ThrowTracker.Initialize();
 			}
 			break;
 		}
@@ -784,67 +784,6 @@ static void ApplyLocationalEffect(Actor* actor, UInt32 effectType, float chance,
 	*/
 }
 
-//WeaponThrowVR support
-UInt32 weapThrowRightProjectileFullFormId = 0x000000;
-UInt32 weapThrowLeftProjectileFullFormId = 0x000000;
-TESObjectWEAP * weapThrowRightWeaponBow;
-TESObjectWEAP * weapThrowLeftWeaponBow;
-
-void LoadWeaponThrowModForms()
-{
-	DataHandler * dataHandler = DataHandler::GetSingleton();
-
-	if (dataHandler)
-	{
-		const ModInfo * modInfo = dataHandler->LookupModByName("WeaponThrowVR.esp");
-
-		if (modInfo)
-		{
-			if (modInfo->modIndex > 0 && modInfo->modIndex != 0xFF) //If plugin is in the load order.
-			{
-				const UInt32 rightProjectileFormId = 0x000800;
-				const UInt32 leftProjectileFormId = 0x000DA4;
-
-				weapThrowRightProjectileFullFormId = (modInfo->modIndex << 24) | (rightProjectileFormId & 0x00FFFFFF);
-				weapThrowLeftProjectileFullFormId = (modInfo->modIndex << 24) | (leftProjectileFormId & 0x00FFFFFF);
-
-				const UInt32 rightWeaponBowFormId = 0x000DA1;
-				const UInt32 leftWeaponBowFormId = 0x000DA2;
-
-				const UInt32 rightWeaponBowFullFormId = (modInfo->modIndex << 24) | (rightWeaponBowFormId & 0x00FFFFFF);
-				const UInt32 leftWeaponBowFullFormId = (modInfo->modIndex << 24) | (leftWeaponBowFormId & 0x00FFFFFF);
-
-				TESForm * form = nullptr;
-				if (rightWeaponBowFullFormId > 0)
-				{
-					form = nullptr;
-					form = LookupFormByID(rightWeaponBowFullFormId);
-					if (form)
-					{
-						if (form)
-						{
-							weapThrowRightWeaponBow = DYNAMIC_CAST(form, TESForm, TESObjectWEAP);
-						}
-					}
-				}
-
-				if (leftWeaponBowFullFormId > 0)
-				{
-					form = nullptr;
-					form = LookupFormByID(leftWeaponBowFullFormId);
-					if (form)
-					{
-						if (form)
-						{
-							weapThrowLeftWeaponBow = DYNAMIC_CAST(form, TESForm, TESObjectWEAP);
-						}
-					}
-				}
-				_MESSAGE("Found WeaponThrowVR. Registered formids.");
-			}
-		}
-	}
-}
 // Skyrim SE hook:
 // typedef int64_t (*_OnProjectileHitFunction)(Projectile* akProjectile, TESObjectREFR* akTarget, NiPoint3* point,                                        
  //   UInt32 unk1, UInt32 unk2, UInt8 unk3);
@@ -1009,8 +948,8 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 			if (projectile)
 			{
-				const bool ThrownWeaponLeft = projectile->baseForm ? (projectile->baseForm->formID == weapThrowLeftProjectileFullFormId) : false;
-				const bool ThrownWeaponRight = projectile->baseForm ? (projectile->baseForm->formID == weapThrowRightProjectileFullFormId) : false;
+				const bool ThrownWeaponLeft = g_ThrowTracker.IsThrownLeftHandProjectile(projectile);
+				const bool ThrownWeaponRight = g_ThrowTracker.IsThrownRightHandProjectile(projectile);
 				
 				UInt32* handle = Projectile_GetActorCauseFn(projectile);
 				
@@ -1054,13 +993,13 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 					if (ThrownWeaponLeft || ThrownWeaponRight)
 					{
 						//WeaponThrowVR support
-						if(ThrownWeaponRight && weapThrowRightWeaponBow)
+						if(ThrownWeaponRight && g_ThrowTracker.GetRightThrowWeapon())
 						{
-							weapon = weapThrowRightWeaponBow;
+							weapon = g_ThrowTracker.GetRightThrowWeapon();
 						}
-						else if(ThrownWeaponLeft && weapThrowLeftWeaponBow)
+						else if(ThrownWeaponLeft && g_ThrowTracker.GetLeftThrowWeapon())
 						{
-							weapon = weapThrowLeftWeaponBow;
+							weapon = g_ThrowTracker.GetLeftThrowWeapon();
 						}
 					}
 					else

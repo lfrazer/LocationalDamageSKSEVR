@@ -8,13 +8,6 @@
 #include <skse64/GameReferences.h>
 #include <skse64/GameObjects.h>
 
-#define EXTRA_DEBUG_LOG 0
-
-#if EXTRA_DEBUG_LOG || defined(_DEBUG)
-#define _DEBUGMSG _MESSAGE
-#else
-#define _DEBUGMSG(...) 
-#endif
 
 struct CSpellBonusDmgPerk
 {
