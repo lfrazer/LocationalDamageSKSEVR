@@ -102,6 +102,7 @@ public:
 // globals
 SKSEPapyrusInterface* g_papyrus = nullptr;
 SKSEMessagingInterface* g_messaging = nullptr;
+SKSETrampolineInterface* g_trampolineInterface = nullptr;
 PluginHandle g_pluginHandle = kPluginHandle_Invalid;
 PapyrusVRAPI*	g_papyrusvr = nullptr;
 SKSETaskInterface* g_task = nullptr;
@@ -207,16 +208,41 @@ void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 
 			ini.Load();
 
-			if (!g_branchTrampoline.Create(TRAMPOLINE_SIZE))  // don't need such large buffers
+			// NEW SKSEVR feature: trampoline interface object from QueryInterface() - Use SKSE existing process code memory pool - allow Skyrim to run without ASLR
+			if (g_trampolineInterface) 
 			{
-				_FATALERROR("[ERROR] couldn't create branch trampoline. this is fatal. skipping remainder of init process.");
-				return;
-			}
+				void* branch = g_trampolineInterface->AllocateFromBranchPool(g_pluginHandle, TRAMPOLINE_SIZE);
+				if (!branch) {
+					_ERROR("couldn't acquire branch trampoline from SKSE. this is fatal. skipping remainder of init process.");
+					return;
+				}
 
-			if (!g_localTrampoline.Create(TRAMPOLINE_SIZE, nullptr))
+				g_branchTrampoline.SetBase(TRAMPOLINE_SIZE, branch);
+
+				void* local = g_trampolineInterface->AllocateFromLocalPool(g_pluginHandle, TRAMPOLINE_SIZE);
+				if (!local) {
+					_ERROR("couldn't acquire codegen buffer from SKSE. this is fatal. skipping remainder of init process.");
+					return;
+				}
+
+				g_localTrampoline.SetBase(TRAMPOLINE_SIZE, local);
+
+				_MESSAGE("Using new SKSEVR trampoline interface memory pool alloc for codegen buffers.");
+			}
+			else  // otherwise if using an older SKSEVR version, fall back to old code
 			{
-				_FATALERROR("[ERROR] couldn't create codegen buffer. this is fatal. skipping remainder of init process.");
-				return;
+
+				if (!g_branchTrampoline.Create(TRAMPOLINE_SIZE))  // don't need such large buffers
+				{
+					_FATALERROR("[ERROR] couldn't create branch trampoline. this is fatal. skipping remainder of init process.");
+					return;
+				}
+
+				if (!g_localTrampoline.Create(TRAMPOLINE_SIZE, nullptr))
+				{
+					_FATALERROR("[ERROR] couldn't create codegen buffer. this is fatal. skipping remainder of init process.");
+					return;
+				}
 			}
 
 			void* codeBuf = g_localTrampoline.StartAlloc();
@@ -318,6 +344,12 @@ extern "C" {
 		{
 			_FATALERROR("[ERROR] couldn't get messaging interface");
 			return false;
+		}
+
+		g_trampolineInterface = static_cast<SKSETrampolineInterface*>(skse->QueryInterface(kInterface_Trampoline));
+		if (!g_trampolineInterface)
+		{
+			_MESSAGE("WARNING: Could not get new trampoline alloc interface, outdated SKSEVR?");
 		}
 
 		return true;
