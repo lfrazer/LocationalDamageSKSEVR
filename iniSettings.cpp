@@ -250,6 +250,18 @@ void INIFile::SetINIData(std::vector<std::string> *list)
 				}
 
 			}
+			else if (key == "PlaySoundAtEnemyLocation")
+			{
+				std::string value = vec.at(1);
+				if (value == "true")
+				{
+					this->PlaySoundAtEnemyLocation = true;
+				}
+				if (value == "false")
+				{
+					this->PlaySoundAtEnemyLocation = false;
+				}
+			}
 			else if (key == "DisplayNotificationMinDamage")
 			{
 				int value = std::atoi(vec.at(1).c_str());
@@ -317,6 +329,10 @@ void INIFile::SetINIData(std::vector<std::string> *list)
 			else if (key == "SoundEffectFormID")
 			{
 				this->SoundEffectFormID = std::strtoul(vec.at(1).c_str(), 0, 16);
+			}
+			else if (key == "SoundEffectSpellFormID")
+			{
+				this->SoundEffectSpellFormID = std::strtoul(vec.at(1).c_str(), 0, 16);
 			}
 			else
 			{
