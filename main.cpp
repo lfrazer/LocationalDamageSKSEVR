@@ -1329,6 +1329,9 @@ void TaskPlayImpactVFX::Run()
 				_MESSAGE("PlayImpactEffect failed :(");
 			}
 			*/
+
+
+
 		}
 		else
 		{
@@ -1338,6 +1341,28 @@ void TaskPlayImpactVFX::Run()
 	else
 	{
 		_MESSAGE("Could not lookup impact data FormID = 0x%x", impactVFXFormID);
+	}
+
+	// also try to play sound
+	if (ini.PlaySoundEffect)
+	{
+		auto* soundForm = LookupFormByID(ini.SoundEffectFormID);
+		if (soundForm)
+		{
+			auto* soundDesc = DYNAMIC_CAST(soundForm, TESForm, TESSound);
+			if (soundDesc)
+			{
+				papyrusSound::Play((*g_skyrimVM)->GetClassRegistry(), 0, soundDesc, mActor);
+			}
+			else
+			{
+				_MESSAGE("Could not cast sound form to TESSound, FormID = 0x%x", ini.SoundEffectFormID);
+			}
+		}
+		else
+		{
+			_MESSAGE("Could not lookup sound form data FormID = 0x%x", ini.SoundEffectFormID);
+		}
 	}
 
 }
