@@ -102,4 +102,5 @@ namespace SoundData
 
 
 #define DEFAULT_IMPACTEFFECT_FORMID	0x1A3FB // vampire drain (from dawngaurd esm - setup in constructor)
-#define DEFAULT_SOUNDEFFECT_FORMID 0x3EDDA // ImpactAxeLargeVSFlesh
+#define DEFAULT_SOUNDEFFECT_FORMID 0x19398 // (WPNImpactBluntVsFlesh)
+#define DEFAULT_SOUNDEFFECT_SPELL_FORMID 0x137E7 // UIMenuOK

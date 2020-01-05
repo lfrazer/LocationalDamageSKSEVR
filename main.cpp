@@ -173,6 +173,18 @@ private:
 	BSFixedString mNodeName;
 };
 
+class TaskPlaySound : public TaskDelegate
+{
+public:
+	virtual void Run() override;
+	virtual void Dispose() override;
+
+	TaskPlaySound(UInt32 formId, Actor* actor);
+
+private:
+	UInt32 mFormId = 0;
+	Actor* mActor = nullptr;
+};
 
 //Listener for PapyrusVR Messages
 void OnPapyrusVRMessage(SKSEMessagingInterface::Message* msg)
@@ -1205,7 +1217,20 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 					if (ini.PlaySoundEffect)
 					{
-						//PlayTESSound(ini.SoundEffectFormID);
+						UInt32 soundFormId = ini.SoundEffectFormID;
+						Actor* actorToPlaySoundAt = actor;
+
+						if (projectile->formType != kFormType_Arrow) // if it was a spell projectile, use spell sfx
+						{
+							soundFormId = ini.SoundEffectSpellFormID;
+						}
+
+						if (!ini.PlaySoundAtEnemyLocation || !actorToPlaySoundAt)
+						{
+							actorToPlaySoundAt = *g_thePlayer;
+						}
+
+						g_task->AddTask(new TaskPlaySound(ini.SoundEffectFormID, actorToPlaySoundAt));
 					}
 
 					// track last time of spell bonus damage
@@ -1329,9 +1354,6 @@ void TaskPlayImpactVFX::Run()
 				_MESSAGE("PlayImpactEffect failed :(");
 			}
 			*/
-
-
-
 		}
 		else
 		{
@@ -1343,10 +1365,30 @@ void TaskPlayImpactVFX::Run()
 		_MESSAGE("Could not lookup impact data FormID = 0x%x", impactVFXFormID);
 	}
 
+
+
+}
+
+void TaskPlayImpactVFX::Dispose()
+{
+	delete this;
+}
+
+
+// SFX tasks
+
+TaskPlaySound::TaskPlaySound(UInt32 formId, Actor* actor)
+{
+	mFormId = formId;
+	mActor = actor;
+}
+
+void TaskPlaySound::Run()
+{
 	// also try to play sound
-	if (ini.PlaySoundEffect)
+
 	{
-		auto* soundForm = LookupFormByID(ini.SoundEffectFormID);
+		auto* soundForm = LookupFormByID(mFormId);
 		if (soundForm)
 		{
 			auto* soundDesc = DYNAMIC_CAST(soundForm, TESForm, TESSound);
@@ -1356,18 +1398,17 @@ void TaskPlayImpactVFX::Run()
 			}
 			else
 			{
-				_MESSAGE("Could not cast sound form to TESSound, FormID = 0x%x", ini.SoundEffectFormID);
+				_MESSAGE("Could not cast sound form to TESSound, FormID = 0x%x", mFormId);
 			}
 		}
 		else
 		{
-			_MESSAGE("Could not lookup sound form data FormID = 0x%x", ini.SoundEffectFormID);
+			_MESSAGE("Could not lookup sound form data FormID = 0x%x", mFormId);
 		}
 	}
-
 }
 
-void TaskPlayImpactVFX::Dispose()
+void TaskPlaySound::Dispose()
 {
 	delete this;
 }

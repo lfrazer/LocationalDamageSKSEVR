@@ -48,11 +48,13 @@ public:
 	UInt32 UnequipWeaponBaseChance;
 
 	UInt32 SoundEffectFormID = DEFAULT_SOUNDEFFECT_FORMID;
+	UInt32 SoundEffectSpellFormID = DEFAULT_SOUNDEFFECT_SPELL_FORMID;
 	UInt32 ImpactEffectFormID = 0; // will be set in constructor based on mod index
 
 	bool DisplayImpactEffect;
 	bool DisplayNotification;
 	bool PlaySoundEffect = true;
+	bool PlaySoundAtEnemyLocation = false;
 	int DisplayNotificationMinDamage = 1;
 
 	std::string HeadMessageFront;
