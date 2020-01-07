@@ -1230,7 +1230,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 							actorToPlaySoundAt = *g_thePlayer;
 						}
 
-						g_task->AddTask(new TaskPlaySound(ini.SoundEffectFormID, actorToPlaySoundAt));
+						g_task->AddTask(new TaskPlaySound(soundFormId, actorToPlaySoundAt));
 					}
 
 					// track last time of spell bonus damage
