@@ -268,6 +268,12 @@ void INIFile::SetINIData(std::vector<std::string> *list)
 				GeneralMap.at("DisplayNotificationMinDamage") = value;
 				DisplayNotificationMinDamage = value;
 			}
+			else if (key == "UseSKSETrampolineInterface")
+			{
+				int value = std::atoi(vec.at(1).c_str());
+				GeneralMap.at("UseSKSETrampolineInterface") = value;
+				UseSKSETrampolineInterface = value;
+			}
 			else if (key == "HeadMessageFront")
 			{
 				std::string value = vec.at(1);

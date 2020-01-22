@@ -56,6 +56,7 @@ public:
 	bool PlaySoundEffect = true;
 	bool PlaySoundAtEnemyLocation = false;
 	int DisplayNotificationMinDamage = 1;
+	int UseSKSETrampolineInterface = 1;
 
 	std::string HeadMessageFront;
 	std::string HeadMessageBack;

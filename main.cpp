@@ -221,7 +221,7 @@ void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 			ini.Load();
 
 			// NEW SKSEVR feature: trampoline interface object from QueryInterface() - Use SKSE existing process code memory pool - allow Skyrim to run without ASLR
-			if (g_trampolineInterface) 
+			if (g_trampolineInterface && ini.UseSKSETrampolineInterface) 
 			{
 				void* branch = g_trampolineInterface->AllocateFromBranchPool(g_pluginHandle, TRAMPOLINE_SIZE);
 				if (!branch) {
@@ -255,6 +255,8 @@ void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 					_FATALERROR("[ERROR] couldn't create codegen buffer. this is fatal. skipping remainder of init process.");
 					return;
 				}
+
+				_MESSAGE("Using legacy SKSE trampoline creation.");
 			}
 
 			void* codeBuf = g_localTrampoline.StartAlloc();
@@ -361,7 +363,7 @@ extern "C" {
 		g_trampolineInterface = static_cast<SKSETrampolineInterface*>(skse->QueryInterface(kInterface_Trampoline));
 		if (!g_trampolineInterface)
 		{
-			_MESSAGE("WARNING: Could not get new trampoline alloc interface, outdated SKSEVR?");
+			_MESSAGE("WARNING: Could not get new trampoline alloc interface, Using legacy SKSE VR");
 		}
 
 		return true;
