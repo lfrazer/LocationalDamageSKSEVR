@@ -334,7 +334,7 @@ extern "C" {
 
 		// populate info structure
 		info->infoVersion = PluginInfo::kInfoVersion;
-		info->version = 4;
+		info->version = 6;
 
 		g_pluginHandle = skse->GetPluginHandle();
 
@@ -882,13 +882,16 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 		//if (!hit_pos || !target)
 		//	return;
 
-		Actor* actor = DYNAMIC_CAST(target, TESObjectREFR, Actor);//DYNAMIC_CAST<Actor*>(target);
-		// actor->IsDead(true) seems to crash in VR as well.. Try in SE?
+		Actor* actor = DYNAMIC_CAST(target, TESObjectREFR, Actor);
+
 		if (!actor) //|| actor->IsDead(true)) //|| actor->IsInKillMove())
-			return OnProjectileHitFunction(akProjectile, akTarget, point, unk1, unk2, unk3);;
+			return OnProjectileHitFunction(akProjectile, akTarget, point, unk1, unk2, unk3);
+
+		// additional checks.  IsDead should be fixed now in new SKSE. Not sure about IsInKillMove
+		const bool isAlive = !actor->IsDead(true);
 
 		TESRace* race = actor->race; //actor->GetRace();
-		if (!race)
+		if (!race || !isAlive)
 			return OnProjectileHitFunction(akProjectile, akTarget, point, unk1, unk2, unk3);;
 
 		NiNode *node = actor->GetNiNode();

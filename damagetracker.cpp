@@ -146,10 +146,12 @@ bool CDamageTracker::RegisterAttack(SpellItem* spell, Actor* actor)
 		dmgEntry.mIsSpell = true;
 		dmgEntry.mKeyword = dmgKeyword;
 
+#ifdef _DEBUG // TODO: This seems to still crash for certain staves.. disable only for staves?
 		if (spell->dispObj.worldStatic != nullptr)
 		{
 			dmgEntry.mProjectileName = spell->dispObj.worldStatic->texSwap.GetModelName(); //effectItem->mgef->properties.projectile->fullName.GetName();
 		}
+#endif
 
 		this->mDamageMap[dmgEntry.mFormType] = dmgEntry;
 
