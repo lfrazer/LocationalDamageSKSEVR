@@ -38,9 +38,11 @@ LightArmorEffectChanceMultiplier(0.6)
 
 	GeneralMap["DisplayImpactEffect"] = 1;
 	GeneralMap["DisplayNotification"] = 1;
+	GeneralMap["LogNotification"] = 0;
 	GeneralMap["DisplayNotificationMinDamage"] = 1;
 
 	GeneralMap["SpellDamageMultiplier"] = 1;
+	GeneralMap["SpellTimeout"] = 1000;
 
 	MessageMap["HeadMessageFront"] = "Head: ";
 	MessageMap["HeadMessageBack"] = "";
@@ -237,6 +239,21 @@ void INIFile::SetINIData(std::vector<std::string> *list)
 					DisplayNotification = false;
 				}
 			}
+			else if (key == "LogNotification")
+			{
+				std::string value = vec.at(1);
+				ToLower(value);
+				if (value == "false" || value == "0")
+				{
+					GeneralMap.at("LogNotification") = 0;
+					LogNotification = false;
+				}
+				else
+				{
+					GeneralMap.at("LogNotification") = 1;
+					LogNotification = true;
+				}
+			}
 			else if (key == "PlaySoundEffect")
 			{
 				std::string value = vec.at(1);
@@ -327,6 +344,12 @@ void INIFile::SetINIData(std::vector<std::string> *list)
 				double value = std::atof(vec.at(1).c_str());
 				SpellDamageMultiplier = value;
 				GeneralMap.at("SpellDamageMultiplier") = (UInt32)(value * 100.0);
+			}
+			else if (key == "SpellTimeout")
+			{
+				double value = std::atof(vec.at(1).c_str());
+				SpellTimeout = value;
+				GeneralMap.at("SpellTimeout") = (UInt32)(value * 1000.0); // spell timeout INI setting in miliseconds - convert to seconds on read in
 			}
 			else if (key == "ImpactEffectFormID")
 			{

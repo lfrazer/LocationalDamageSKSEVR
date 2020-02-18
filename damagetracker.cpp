@@ -63,7 +63,10 @@ float CDamageTracker::GetSpellDamageBonus(SpellItem* spell, MagicItem::EffectIte
 	{
 		const float magickaRateMult = papyrusActor::GetActorValue((*g_skyrimVM)->GetClassRegistry(), 0, caster_actor, "MagickaRateMult");
 		//_MESSAGE("MagickaRateMult -  float = %f ",magickaRateMult);
-		dmg *= (magickaRateMult * 0.01f);
+		if (magickaRateMult > 0.0f) // rare case with mods where this can become negative
+		{
+			dmg *= (magickaRateMult * 0.01f);
+		}
 
 		// look for "elemental overload" perk for weaving circle
 		const UInt32 elementalOverloadPerkID = (mSpellsiphonModIndex << 24) | kSpellsiphonElementalOverloadPerkID;
@@ -220,9 +223,10 @@ MagicItem::EffectItem* GetDamageEffectForSpell(SpellItem* spell, const char** dm
 	{
 		float dmgOut = 0.0f;
 		const int numKeywords = pEI->mgef->keywordForm.numKeywords;
+		const float maxDmg = 150.0f;  // cutoff maximum damage (sanity check), if the damage is higher than this it might be an error due to picking up on the magic effect for Disintegrate perk -> PerkDisintegrateConcAimed
 		for (int i = 0; i < numKeywords; ++i)
 		{
-			if (strstr(pEI->mgef->keywordForm.keywords[i]->keyword.c_str(), "Damage") != nullptr)
+			if (strstr(pEI->mgef->keywordForm.keywords[i]->keyword.c_str(), "Damage") != nullptr && pEI->magnitude <= maxDmg)
 			{
 				dmgOut = pEI->magnitude;
 

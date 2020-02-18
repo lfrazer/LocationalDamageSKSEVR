@@ -914,13 +914,13 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 #endif
 		}
 
+		g_Timer.TimerUpdate(); // need to update this every relevant frame to setup GetLastTime()
+
 		// Stop processing if a spell was cast AND scored bonus damage in the last 1 second
 		bool spellBlockedByTimer = false;
 		if (akProjectile && akProjectile->formType != kFormType_Arrow)
 		{
-			const double kSpellTimeout = 1.0;
-			g_Timer.TimerUpdate(); // need to update this every relevant frame to setup GetLastTime()
-
+			const double kSpellTimeout = ini.SpellTimeout;
 			if (g_Timer.GetLastTime() - g_LastSpellTime < kSpellTimeout)
 			{
 				spellBlockedByTimer = true;
@@ -1119,11 +1119,19 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 				auto DoNotificationConditional = [&](const char* msgFront, const char* msgBack, float dmgVal)
 				{
 					dmgVal = fabsf(dmgVal); // dmg value is usually negative but we want to print the absolute val
-					if (ini.DisplayNotification && dmgVal >= (float)ini.DisplayNotificationMinDamage && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
+					if ((ini.DisplayNotification || ini.LogNotification) && dmgVal >= (float)ini.DisplayNotificationMinDamage && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 					{
 						static char sMsgBuff[1024] = { 0 }; // static because I'm cautious about putting much on the stack of unknown size (I don't know what the game is doing with the stack)
 						sprintf_s(sMsgBuff, "%s %s %s Damage: %f (%s)\n", msgFront, GetActorName(actor), msgBack, dmgVal, GetProjectileType(projectile));
-						fnDebug_Notification(sMsgBuff, false, true);
+
+						if (ini.DisplayNotification)
+						{
+							fnDebug_Notification(sMsgBuff, false, true);
+						}
+						if(ini.LogNotification)
+						{
+							_MESSAGE("[%f] %s", g_Timer.GetLastTime(), sMsgBuff);
+						}
 					}
 				};
 

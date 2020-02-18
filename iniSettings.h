@@ -51,8 +51,9 @@ public:
 	UInt32 SoundEffectSpellFormID = DEFAULT_SOUNDEFFECT_SPELL_FORMID;
 	UInt32 ImpactEffectFormID = 0; // will be set in constructor based on mod index
 
-	bool DisplayImpactEffect;
-	bool DisplayNotification;
+	bool DisplayImpactEffect = true;
+	bool DisplayNotification = true;
+	bool LogNotification = false;
 	bool PlaySoundEffect = true;
 	bool PlaySoundAtEnemyLocation = false;
 	int DisplayNotificationMinDamage = 1;
@@ -74,6 +75,7 @@ public:
 
 	// NEW ini setting for spells
 	double SpellDamageMultiplier = 0.0;
+	double SpellTimeout = 0.5;
 
 	double PlayerToNPC[Type_Num];
 	double NPCToPlayer[Type_Num];
