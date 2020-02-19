@@ -662,7 +662,7 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 		
 		// important to check this for null (for NPCs?)
 		// additional safety check (some special case weapons like Dawnbreaker seem to have spell effects attached to them..?)
-		if (effectItem && effectItem->mgef && effectItem->mgef->properties.projectile)
+		if (effectItem && effectItem->mgef)
 		{ 
 			damage = g_DamageTracker.GetSpellDamageBonus(spell, effectItem, caster_actor, dmgKeyword);
 			damage = damage * ini.SpellDamageMultiplier;

@@ -141,10 +141,19 @@ bool CDamageTracker::RegisterAttack(SpellItem* spell, Actor* actor)
 
 	MagicItem::EffectItem* effectItem = GetDamageEffectForSpell(spell, &dmgKeyword);
 	// additional safety check (some special case weapons like Dawnbreaker seem to have spell effects attached to them..?)
-	if (effectItem && effectItem->mgef && effectItem->mgef->properties.projectile)
+	if (effectItem && effectItem->mgef)
 	{
-		dmgEntry.mFormType = effectItem->mgef->properties.projectile->formType;
-		dmgEntry.mFormID = effectItem->mgef->properties.projectile->formID;
+		if (effectItem->mgef->properties.projectile)
+		{
+			dmgEntry.mFormType = effectItem->mgef->properties.projectile->formType;
+			dmgEntry.mFormID = effectItem->mgef->properties.projectile->formID;
+		}
+		else // in this case there is no projectile attached to the MGEF, but it can still do damage (for example lightning bolts and all spellsiphon spell MGEFs)
+		{
+			dmgEntry.mFormType = kFormType_Projectile; // some default values that should still allow for lookup - since atm we just assume this formType if its not an arrow
+			dmgEntry.mFormID = effectItem->mgef->formID; // save the MGEF's formID instead of projectiles in this case
+		}
+
 		dmgEntry.mDamage = GetSpellDamageBonus(spell, effectItem, actor, dmgKeyword);
 		dmgEntry.mIsSpell = true;
 		dmgEntry.mKeyword = dmgKeyword;
@@ -224,18 +233,22 @@ MagicItem::EffectItem* GetDamageEffectForSpell(SpellItem* spell, const char** dm
 		float dmgOut = 0.0f;
 		const int numKeywords = pEI->mgef->keywordForm.numKeywords;
 		const float maxDmg = 150.0f;  // cutoff maximum damage (sanity check), if the damage is higher than this it might be an error due to picking up on the magic effect for Disintegrate perk -> PerkDisintegrateConcAimed
-		for (int i = 0; i < numKeywords; ++i)
+		
+		if (pEI->magnitude <= maxDmg) // don't check any of the keywords if the sanity check fails
 		{
-			if (strstr(pEI->mgef->keywordForm.keywords[i]->keyword.c_str(), "Damage") != nullptr && pEI->magnitude <= maxDmg)
+			for (int i = 0; i < numKeywords; ++i)
 			{
-				dmgOut = pEI->magnitude;
-
-				if (dmgKeywordStrOut)
+				if (strstr(pEI->mgef->keywordForm.keywords[i]->keyword.c_str(), "Damage") != nullptr)
 				{
-					*dmgKeywordStrOut = pEI->mgef->keywordForm.keywords[i]->keyword.c_str();
-				}
+					dmgOut = pEI->magnitude;
 
-				return dmgOut;
+					if (dmgKeywordStrOut)
+					{
+						*dmgKeywordStrOut = pEI->mgef->keywordForm.keywords[i]->keyword.c_str();
+					}
+
+					return dmgOut;
+				}
 			}
 		}
 		return dmgOut;
@@ -252,7 +265,7 @@ MagicItem::EffectItem* GetDamageEffectForSpell(SpellItem* spell, const char** dm
 			if (pEI->mgef)
 			{
 				damage = FindDamageEffect(pEI);
-				if (damage > 0.0)
+				if (damage > 0.0f)
 				{
 					return pEI;
 				}
