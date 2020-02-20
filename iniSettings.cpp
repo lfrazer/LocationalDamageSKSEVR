@@ -348,8 +348,8 @@ void INIFile::SetINIData(std::vector<std::string> *list)
 			else if (key == "SpellTimeout")
 			{
 				double value = std::atof(vec.at(1).c_str());
-				SpellTimeout = value;
-				GeneralMap.at("SpellTimeout") = (UInt32)(value * 1000.0); // spell timeout INI setting in miliseconds - convert to seconds on read in
+				SpellTimeout = value / 1000.0; // spell timeout INI setting in miliseconds - convert to seconds on read in
+				GeneralMap.at("SpellTimeout") = (UInt32)value; 
 			}
 			else if (key == "ImpactEffectFormID")
 			{

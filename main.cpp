@@ -334,7 +334,7 @@ extern "C" {
 
 		// populate info structure
 		info->infoVersion = PluginInfo::kInfoVersion;
-		info->version = 6;
+		info->version = 65;
 
 		g_pluginHandle = skse->GetPluginHandle();
 
@@ -1130,7 +1130,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 						}
 						if(ini.LogNotification)
 						{
-							_MESSAGE("[%f] %s", g_Timer.GetLastTime(), sMsgBuff);
+							_MESSAGE("[%.2f] %s", g_Timer.GetLastTime(), sMsgBuff);
 						}
 					}
 				};
