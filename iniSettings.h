@@ -75,7 +75,7 @@ public:
 
 	// NEW ini setting for spells
 	double SpellDamageMultiplier = 0.0;
-	double SpellTimeout = 0.5;
+	double SpellTimeout = 0.75;
 
 	double PlayerToNPC[Type_Num];
 	double NPCToPlayer[Type_Num];

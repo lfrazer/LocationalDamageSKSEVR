@@ -91,6 +91,8 @@ void CTimer::Init(void)	// init func
 		#ifdef WIN32
 		if( QueryPerformanceFrequency((LARGE_INTEGER *)&mTicksPerSecond) ) // on Windows, let the API figure out resolution of timer.
 		{
+			// store ticks at start
+			QueryPerformanceCounter((LARGE_INTEGER*)&mStartTicks);
 		}
 
 		else 
@@ -128,7 +130,7 @@ double CTimer::GetTime(void) // time since start of program
 
 
 	// Divide by frequency to get the time in seconds
-	timeInSeconds = (double)ticks/(double)mTicksPerSecond;
+	timeInSeconds = (double)(ticks - mStartTicks) / (double)mTicksPerSecond;
 
 	mLastRawTime = ticks;
 

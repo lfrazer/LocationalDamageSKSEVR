@@ -53,14 +53,15 @@ public:
 	static time_t ConvertWebTimeToTimestamp(const char* webtime);
 
 private:
-	double mStartTime;
-	double mLastTime;
-	double mTimeSlice;
-	double mPauseTime;
-	double mPauseTotalSubtraction;
-	UINT64 mTicksPerSecond;
-	int mInitComplete;
-	UINT64 mLastRawTime;
+	double mStartTime = 0.0;
+	double mLastTime = 0.0;
+	double mTimeSlice = 0.0;
+	double mPauseTime = 0.0;
+	double mPauseTotalSubtraction = 0.0;
+	UINT64 mTicksPerSecond = 0;
+	UINT64 mStartTicks = 0;
+	int mInitComplete = 0;
+	UINT64 mLastRawTime = 0;
 
 
 };

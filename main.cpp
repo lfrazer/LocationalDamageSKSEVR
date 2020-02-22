@@ -1122,7 +1122,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 					if ((ini.DisplayNotification || ini.LogNotification) && dmgVal >= (float)ini.DisplayNotificationMinDamage && (actor == *g_thePlayer || caster_actor == *g_thePlayer))
 					{
 						static char sMsgBuff[1024] = { 0 }; // static because I'm cautious about putting much on the stack of unknown size (I don't know what the game is doing with the stack)
-						sprintf_s(sMsgBuff, "%s %s %s Damage: %f (%s)\n", msgFront, GetActorName(actor), msgBack, dmgVal, GetProjectileType(projectile));
+						sprintf_s(sMsgBuff, "%s %s %s Damage: %f (%s)", msgFront, GetActorName(actor), msgBack, dmgVal, GetProjectileType(projectile));
 
 						if (ini.DisplayNotification)
 						{
