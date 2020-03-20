@@ -59,6 +59,32 @@ namespace Offset
 	}
 }
 #else
+// new for RUNTIME_VERSION_1_5_97 
+
+//1.00	0.99	-------	00000001407531C0	sub_00000001407531C0	000000014077E4E0	OnProjectileHitInner	 	edges flowgraph MD index	83	83	83	490	490	490	130	130	130
+
+
+#define ONPROJECTILEHIT_HOOKLOCATION							0x0074CB0A
+#define ONPROJECTILEHIT_INNERFUNCTION							0x007531C0
+
+
+// 1.00	0.62	-------	00000001407CD9D0	sub_00000001407CD9D0	0000000140779010	ArrowProjectile_vf_sub_140779010	 	address sequence	1	1	1	2	2	2	0	0	0
+
+#define PROJECTILE_GETACTORCAUSEFN								0x007CD9D0 // ??_7Projectile@@6B@			vtbl[51]
+
+// 1.00	0.99	-------	000000014094A4C0	sub_000000014094A4C0	00000001409848B0	Actor__DamageActorValue_PSF	 	edges flowgraph MD index	12	12	12	68	68	68	16	16	16
+
+#define DAMAGEACTORVALUE_FN										0x0094A4C0
+#define PUSHACTORAWAY_FN										0x00996340
+#define DEBUGNOTIFICATION_FN									0x0096DDB0
+
+// TODO: verify these
+#define GETACTORVALUE_FN										0x0094AA70
+#define PLAYSOUND_FN											0x009B4620
+#define PLAYIMPACTEFFECT_FN										0x00995BA0
+
+// Below is now outdated
+/*
 // SSE 1.5.73
 
 #define ONPROJECTILEHIT_HOOKLOCATION							0x0074CB0A
@@ -74,7 +100,7 @@ namespace Offset
 #define GETACTORVALUE_FN										0x0094AA70
 #define PLAYSOUND_FN											0x009B4620
 #define PLAYIMPACTEFFECT_FN										0x00995BA0
-
+*/
 
 // From CommonLibSE  -> Thanks to Ryan SniffleMan!
 namespace BSAudioManager

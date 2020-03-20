@@ -102,7 +102,10 @@ public:
 // globals
 SKSEPapyrusInterface* g_papyrus = nullptr;
 SKSEMessagingInterface* g_messaging = nullptr;
+#ifdef SKYRIMVR
 SKSETrampolineInterface* g_trampolineInterface = nullptr;
+#endif
+
 PluginHandle g_pluginHandle = kPluginHandle_Invalid;
 PapyrusVRAPI*	g_papyrusvr = nullptr;
 SKSETaskInterface* g_task = nullptr;
@@ -220,6 +223,7 @@ void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 
 			ini.Load();
 
+#ifdef SKYRIMVR
 			// NEW SKSEVR feature: trampoline interface object from QueryInterface() - Use SKSE existing process code memory pool - allow Skyrim to run without ASLR
 			if (g_trampolineInterface && ini.UseSKSETrampolineInterface) 
 			{
@@ -242,6 +246,7 @@ void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 				_MESSAGE("Using new SKSEVR trampoline interface memory pool alloc for codegen buffers.");
 			}
 			else  // otherwise if using an older SKSEVR version, fall back to old code
+#endif
 			{
 
 				if (!g_branchTrampoline.Create(TRAMPOLINE_SIZE))  // don't need such large buffers
@@ -346,7 +351,7 @@ extern "C" {
 #ifdef SKYRIMVR
 		else if (skse->runtimeVersion != RUNTIME_VR_VERSION_1_4_15)
 #else
-		else if (skse->runtimeVersion != RUNTIME_VERSION_1_5_73 && skse->runtimeVersion != RUNTIME_VERSION_1_5_80)
+		else if (skse->runtimeVersion != RUNTIME_VERSION_1_5_97)
 #endif
 		{
 			_MESSAGE("unsupported runtime version %08X", skse->runtimeVersion);
@@ -360,11 +365,13 @@ extern "C" {
 			return false;
 		}
 
+#ifdef SKYRIMVR
 		g_trampolineInterface = static_cast<SKSETrampolineInterface*>(skse->QueryInterface(kInterface_Trampoline));
 		if (!g_trampolineInterface)
 		{
 			_MESSAGE("WARNING: Could not get new trampoline alloc interface, Using legacy SKSE VR");
 		}
+#endif
 
 		return true;
 	}
