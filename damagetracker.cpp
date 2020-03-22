@@ -3,11 +3,13 @@
 #include <skse64/PapyrusVM.h>
 #include <skse64/GameData.h>
 
+/*
 namespace papyrusActor
 {
 	typedef float (*_GetActorValue)(VMClassRegistry* VMinternal, UInt32 stackId, Actor * thisActor, BSFixedString const &dmgValueName);
 	RelocAddr<_GetActorValue> GetActorValue(GETACTORVALUE_FN);
 }
+*/
 
 void CDamageTracker::Init()
 {
@@ -61,7 +63,7 @@ float CDamageTracker::GetSpellDamageBonus(SpellItem* spell, MagicItem::EffectIte
 	// apply spellsiphon perk damage modifier (based on magicka regen rate)
 	if (IsFromSpellsiphon(spell))
 	{
-		const float magickaRateMult = papyrusActor::GetActorValue((*g_skyrimVM)->GetClassRegistry(), 0, caster_actor, "MagickaRateMult");
+		const float magickaRateMult = caster_actor->actorValueOwner.GetCurrent((UInt32)eActorValue::kMagickaRateMult);
 		//_MESSAGE("MagickaRateMult -  float = %f ",magickaRateMult);
 		if (magickaRateMult > 0.0f) // rare case with mods where this can become negative
 		{

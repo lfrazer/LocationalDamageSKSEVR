@@ -44,12 +44,16 @@
 //#include "RE/SoundData.h"
 #endif
 
-// call "DamageActorValue" script func directly by address
+
 namespace papyrusActor
 {
-
+	// call "DamageActorValue" script func directly by address
 	typedef void(*_DamageActorValue)(VMClassRegistry* VMinternal, UInt32 stackId, Actor * thisActor, BSFixedString const &dmgValueName, float dmg);
 	RelocAddr<_DamageActorValue> DamageActorValue(DAMAGEACTORVALUE_FN);
+
+	// decapitate actor
+	typedef void (*_Decapitate)(Actor* thisActor);
+	RelocAddr<_Decapitate> Decapitate(DECAPITATEACTOR_FN);
 }
 
 namespace papyrusStatic
@@ -692,6 +696,14 @@ static void ApplyLocationalDamage(Actor* actor, UInt32 damageType, float dmg, Ac
 		return;
 
 	papyrusActor::DamageActorValue((*g_skyrimVM)->GetClassRegistry(), 0, actor, "Health", dmg);
+
+	// do decapitation if locational damage will kill actor
+	const float hp = actor->actorValueOwner.GetCurrent( (UInt32)eActorValue::kHealth );
+	if (hp <= 0.0f)
+	{
+		_MESSAGE("Trying to decapitate actor %s with health %f", actor->GetName(), hp);
+		papyrusActor::Decapitate(actor);
+	}
 }
 
 static void ApplyLocationalEffect(Actor* actor, UInt32 effectType, float chance, FoundEquipArmor equipArmor, std::string pathString)
