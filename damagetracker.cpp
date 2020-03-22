@@ -191,6 +191,13 @@ bool CDamageTracker::RegisterAttack(TESObjectWEAP* weapon)
 
 CDamageEntry* CDamageTracker::LookupDamageEntry(Projectile* proj)
 {
+	/*
+	Useful info about Projectile class from po3:
+	Projectile unk150 is BGSExplosion
+	also 158 is MagicItem, not SpellItem
+	there's a NiTransform at unk0A8, probably local
+	*/
+
 	UInt8 formTypeLookup = 0;
 
 	if (proj->formType == kFormType_Arrow) // arrow type seems are always just arrows

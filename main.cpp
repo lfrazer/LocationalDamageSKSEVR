@@ -44,17 +44,6 @@
 //#include "RE/SoundData.h"
 #endif
 
-//class Actor
-//DEFINE_MEMBER_FN(DamageActorValue, void, 0x006E0760, UInt32 unk1, UInt32 actorValueID, float damage, Actor* akAggressor);
-//class ActorProcessManager
-//DEFINE_MEMBER_FN(PushActorAway, void, 0x00723FE0, Actor* actor, float x, float y, float z, float force);
-
-/* SkyrimVR matches
-0.24	0.54	GI--E--	0000000140492EC0	sub_0000000140492EC0	006E0760	sub_006E0760	 	edges callgraph MD index	5	5	24	9	33	120	3	6	39
-0.19	0.33	GI--E-C	000000014030CE50	sub_000000014030CE50	00723FE0	sub_00723FE0	 	call sequence matching(sequence)	10	11	28	26	63	257	8	15	39
-
-*/
-
 // call "DamageActorValue" script func directly by address
 namespace papyrusActor
 {
@@ -285,6 +274,7 @@ void SKSEMessageHandler(SKSEMessagingInterface::Message* msg)
 			}
 			else
 			{
+				// Player action event listener was too unreliable to be useful...
 			/*
 				void * dispatchPtr = g_messaging->GetEventDispatcher(SKSEMessagingInterface::kDispatcher_ActionEvent);
 				g_skseActionEventDispatcher = (EventDispatcher<SKSEActionEvent>*)dispatchPtr;
@@ -397,9 +387,6 @@ extern "C" {
 };
 
 
-
-
-
 typedef std::pair<BSFixedString, UInt32> Pair;
 std::unordered_map<std::string, std::vector<Pair>> locationalNodeMap = {
 	{ "actors\\character\\defaultmale.hkx",{ { "NPC Head [Head]", 20 },{ "NPC R Calf [RClf]", 20 },{ "NPC L Calf [LClf]", 20 },{ "NPC R Forearm [RLar]", 20 },{ "NPC L Forearm [LLar]", 20 },{ "NPC Spine2 [Spn2]", 20 } } },
@@ -452,16 +439,11 @@ std::unordered_map<std::string, std::vector<Pair>> locationalNodeMap = {
 { "actors\\dlc02\\hmdaedra\\hmdaedra.hkx",{ { "NPC M HeadNoodle01", 25 } } }
 };
 
-//typedef void(*FnDebug_Notification)(const char*, bool, bool);
-//const FnDebug_Notification fnDebug_Notification = (FnDebug_Notification)0x008997A0;
-// TODO: debug notification in skyrim?  for now just do debug print
-
 void fnDebug_Notification(const char* str, bool flag1, bool flag2)
 {
 	papyrusStatic::DebugNotifcation((*g_skyrimVM)->GetClassRegistry(), 0, nullptr, str);
 	OutputDebugStringA(str);
 }
-
 
 static bool Probability(float value)
 {
@@ -475,29 +457,6 @@ static bool Probability(float value)
 	return false;
 }
 
-/*
-class EquipManager
-{
-public:
-	virtual ~EquipManager();
-	static EquipManager *   GetSingleton()
-	{
-		return *((EquipManager **)0x012E5FAC);
-	}
-
-	DEFINE_MEMBER_FN(EquipItem_internal, void, 0x006EF3E0, Actor * actor, TESForm * item, BaseExtraList * extraData, SInt32 count, BGSEquipSlot * equipSlot, bool withEquipSound, bool preventUnequip, bool showMsg, void * unk);
-	DEFINE_MEMBER_FN(UnequipItem_internal, bool, 0x006EE560, Actor * actor, TESForm * item, BaseExtraList * extraData, SInt32 count, BGSEquipSlot * equipSlot, bool unkFlag1, bool preventEquip, bool unkFlag2, bool unkFlag3, void * unk);
-
-	void EquipItem(Actor* actor, TESForm* item, BaseExtraList* extraData)
-	{
-		EquipItem_internal(actor, item, extraData, 1, nullptr, false, false, false, nullptr);
-	}
-	void UnequipItem(Actor* actor, TESForm* item, BaseExtraList* extraData)
-	{
-		UnequipItem_internal(actor, item, extraData, 1, nullptr, false, false, false, false, nullptr);
-	}
-};
-*/
 
 struct FoundEquipArmor
 {
@@ -509,45 +468,14 @@ struct FoundEquipArmor
 	}
 };
 
-/*
-static BaseExtraList* GetEquippedWeaponEx(Actor* actor, bool abLeftHand, TESForm* form)
-{
-	ExtraContainerChanges *exChanges = actor->extraData.GetByType<ExtraContainerChanges>();
-	if (exChanges && exChanges->changes && exChanges->changes->entryList)
-	{
-		for (InventoryEntryData *pEntry : *exChanges->changes->entryList)
-		{
-			if (!pEntry || !pEntry->baseForm || pEntry->baseForm != form || !pEntry->extraList)
-				continue;
-
-			for (BaseExtraList *pExtraDataList : *pEntry->extraList)
-			{
-				if (pExtraDataList && ((!abLeftHand && pExtraDataList->HasType(ExtraDataType::Worn)) || (abLeftHand && pExtraDataList->HasType(ExtraDataType::WornLeft))))
-					return pExtraDataList;
-			}
-		}
-	}
-
-	return nullptr;
-}
-*/
-
-
 // Loop through all equipped armors and find one that matches the slot mask given - relevant API code changed a lot in SKSE64
 static FoundEquipArmor GetEquippedArmorEx(Actor* actor, unsigned int slotMask)
 {
 	FoundEquipArmor equipArmor;
-
-	//ExtraContainerChanges *exChanges = actor->extraData.GetByType<ExtraContainerChanges>();
 	ExtraContainerChanges* exChanges = static_cast<ExtraContainerChanges*>(actor->extraData.GetByType(kExtraData_ContainerChanges));
-	//referenceUtils::ResolveEquippedObject()
 
-	//exChanges->FindEquipped()
-	
-	//if (exChanges && exChanges->changes && exChanges->changes->entryList)
 	if(exChanges && exChanges->data && exChanges->data->objList)
 	{
-		//for (InventoryEntryData *pEntry : *exChanges->data->objList)
 		for (auto it = exChanges->data->objList->Begin(); !it.End(); ++it)
 		{
 			InventoryEntryData* pEntry = it.Get();
@@ -561,7 +489,6 @@ static FoundEquipArmor GetEquippedArmorEx(Actor* actor, unsigned int slotMask)
 			if ((armor->bipedObject.data.parts & slotMask) == 0)
 				continue;
 
-			//for (BaseExtraList *pExtraDataList : *pEntry->extendDataList)
 			for (auto extraIt = pEntry->extendDataList->Begin(); !extraIt.End(); ++extraIt)
 			{
 
@@ -677,12 +604,6 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 			isSpell = true;
 		}
 	}
-	/*
-	else if (caster_actor)
-	{
-		damage = caster_actor->actorValueOwner.GetCurrent(35);
-	}
-	*/
 
 	if (attackData && !isSpell)
 	{
@@ -745,11 +666,14 @@ static float GetLocationalEffectChance(Actor* actor, BGSAttackData* attackData, 
 
 	if (armor)
 	{
-		// TODO: fix condition
-		//if (armor->IsHeavyArmor())
+		if (armor->bipedObject.data.weightClass == BGSBipedObjectForm::kWeight_Heavy)
+		{
 			chance *= ini.HeavyArmorEffectChanceMultiplier;
-		//else if (armor->IsLightArmor())
-		//	chance *= ini.LightArmorEffectChanceMultiplier;
+		}
+		else if (armor->bipedObject.data.weightClass == BGSBipedObjectForm::kWeight_Light)
+		{
+			chance *= ini.LightArmorEffectChanceMultiplier;
+		}
 	}
 
 	if (actor == *g_thePlayer)
@@ -768,17 +692,6 @@ static void ApplyLocationalDamage(Actor* actor, UInt32 damageType, float dmg, Ac
 		return;
 
 	papyrusActor::DamageActorValue((*g_skyrimVM)->GetClassRegistry(), 0, actor, "Health", dmg);
-
-	/*
-	if ((damageType & 1) != 0)
-		papyrusActor::DamageActorValue(actor, "Health", dmg); //CALL_MEMBER_FN(actor, DamageActorValue)(2, 24, dmg, akAggressor);  // TODO: we will probably need a special definition of Actor class to fix this..
-
-	if ((damageType & 2) != 0)
-		papyrusActor::DamageActorValue(actor, "Health", dmg); //actor->DamageActorValue(2, 25, dmg, akAggressor);
-
-	if ((damageType & 4) != 0)
-		papyrusActor::DamageActorValue(actor, "Health", dmg); //actor->DamageActorValue(2, 26, dmg, akAggressor);
-	*/
 }
 
 static void ApplyLocationalEffect(Actor* actor, UInt32 effectType, float chance, FoundEquipArmor equipArmor, std::string pathString)
@@ -837,57 +750,16 @@ static void ApplyLocationalEffect(Actor* actor, UInt32 effectType, float chance,
 	*/
 }
 
-// Skyrim SE hook:
-// typedef int64_t (*_OnProjectileHitFunction)(Projectile* akProjectile, TESObjectREFR* akTarget, NiPoint3* point,                                        
- //   UInt32 unk1, UInt32 unk2, UInt8 unk3);
 
-// There is also a way to get "caster" lookup from Projectile*
-/*
-		UInt32* handle = Projectile_GetActorCauseFn(akProjectile);
-
-#ifdef SKYRIMVR
-		TESObjectREFR* refCaster = nullptr;
-#else
-		NiPointer<TESObjectREFR> refCaster = nullptr;
-#endif
-
-		if (handle && *handle != *g_invalidRefHandle)
-		{
-
-#ifdef SKYRIMVR
-			LookupREFRByHandle(handle, &refCaster); // SKSE_VR takes handle ptr here, not ref? - also 2nd arg is float ptr not NiPointer template
-#else
-			LookupREFRByHandle(*handle, refCaster);
-#endif
-		}
-*/
-
-// Not sure how to get CELL or WEAPON..  (Maybe from Actor struct?)
-// What is the difference between caster and caster_ref ?
-
-// For weapon, maybe:  	TESForm * GetEquippedObject(bool abLeftHand); (Actor func)
-// or 	SpellItem* leftHandSpell;						// 1C0
-//	SpellItem* rightHandSpell;						// 1C8
-
-//static void Impact_Hook(UInt32 ecx, UInt32* stack)
 int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* akTarget, NiPoint3* point, UInt32 unk1,
 	UInt32 unk2, UInt8 unk3)
 {
 	if (akProjectile != nullptr && akTarget != nullptr) //&& akProjectile->formType == kFormType_Arrow)
 	{
-		//TESObjectCELL* cell = (TESObjectCELL*)stack[1];
-		//if (!cell)
-		//	return;
-
-		//If sweep attack, type is int?
-		//if (((UInt32*)stack[9])[35] < cell->objectList.count)
-		//	return;
 
 
 		NiPoint3* hit_pos = point;
 		TESObjectREFR* target = akTarget; //(TESObjectREFR*)stack[10];
-		//if (!hit_pos || !target)
-		//	return;
 
 		Actor* actor = DYNAMIC_CAST(target, TESObjectREFR, Actor);
 
@@ -897,7 +769,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 		// additional checks.  IsDead should be fixed now in new SKSE. Not sure about IsInKillMove
 		const bool isAlive = !actor->IsDead(true);
 
-		TESRace* race = actor->race; //actor->GetRace();
+		TESRace* race = actor->race;
 		if (!race || !isAlive)
 			return OnProjectileHitFunction(akProjectile, akTarget, point, unk1, unk2, unk3);;
 
@@ -906,17 +778,8 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 		{
 			PlayerCamera* camera = PlayerCamera::GetSingleton();
 #ifdef SKYRIMVR
-			node = (*g_thePlayer)->firstPersonSkeleton; //camera && camera->IsFirstPerson() ? g_thePlayer->firstPersonSkeleton : g_thePlayer->loadedState->node;
+			node = (*g_thePlayer)->firstPersonSkeleton; 
 #else
-			// original impl
-			/*	inline bool IsFirstPerson(void) const {
-		return cameraState == cameraStates[kCameraState_FirstPerson];
-	}
-	inline bool IsThirdPerson(void) const {
-		return cameraState == cameraStates[kCameraState_ThirdPerson2];
-	}
-		*/
-
 			node = camera && camera->cameraState == camera->cameraStates[PlayerCamera::kCameraState_FirstPerson] ? (*g_thePlayer)->firstPersonSkeleton : (*g_thePlayer)->loadedState->node;
 #endif
 		}
@@ -940,13 +803,6 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 			//_MESSAGE("node == NULL OR Spell processing blocked by timer. remaining time: %f", g_Timer.GetLastTime() - g_LastSpellTime);
 			return OnProjectileHitFunction(akProjectile, akTarget, point, unk1, unk2, unk3);
 		}
-
-		/* ref code:
-				TESNPC * actorBase = DYNAMIC_CAST((*g_thePlayer)->baseForm, TESForm, TESNPC);
-			if(actorBase) {
-				args->result->SetNumber(CALL_MEMBER_FN(actorBase, GetSex)());
-			}
-		*/
 
 		int gender = 0;
 		TESNPC* base = DYNAMIC_CAST(actor->baseForm, TESForm, TESNPC);
@@ -977,11 +833,6 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 			NiAVObject *obj = node->GetObjectByName(&nodeNameKey);  // arg type of this changed... is it safe?
 			if (obj)
 			{
-				/*
-					const NiPoint3 & GetWorldTranslate() const { return m_worldTransform.pos;}
-				*/
-
-				//NiPoint3 node_pos = obj->GetWorldTranslate();  // TODO: figure out how to get this..
 				NiPoint3 node_pos = obj->m_worldTransform.pos;
 
 				const float dx = hit_pos->x - node_pos.x;
