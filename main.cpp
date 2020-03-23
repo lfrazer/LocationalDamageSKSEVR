@@ -7,6 +7,7 @@
 #include <skse64/PapyrusEvents.h>
 #include <skse64/PapyrusVM.h>
 #include <skse64/GameSettings.h>
+#include <skse64/GameReferences.h>
 #include <skse64/InternalTasks.h>
 
 #include "skse64_common/skse_version.h"
@@ -701,7 +702,23 @@ static void ApplyLocationalDamage(Actor* actor, UInt32 damageType, float dmg, Ac
 	const float hp = actor->actorValueOwner.GetCurrent( (UInt32)eActorValue::kHealth );
 	if (hp <= 0.0f)
 	{
-		_MESSAGE("Trying to decapitate actor %s with health %f", actor->GetName(), hp);
+		auto GetActorName = [](Actor* actor)->const char*
+		{
+			const char* name = CALL_MEMBER_FN(actor, GetReferenceName)();
+			return name != nullptr ? name : "NULL";
+		};
+
+		if ((actor->race->data.raceFlags & TESRace::kRace_Child))
+		{
+			return;
+		}
+
+		if ((actor->flags2 & eActorFlags::kEssential) != 0 && (actor->flags2 & eActorFlags::kProtected) != 0) // essential actor
+		{
+			return;
+		}
+
+		_MESSAGE("Trying to decapitate actor %s with health %f", GetActorName(actor), hp);
 		papyrusActor::Decapitate(actor);
 	}
 }

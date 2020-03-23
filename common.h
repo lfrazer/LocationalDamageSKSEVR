@@ -304,3 +304,41 @@ enum class eActorValue : UInt32
 
 	kTotal
 };
+
+
+enum eActorFlags
+{
+	kNone = 0,
+	kScenePackage = 1 << 0,
+	kIsAMount = 1 << 1,
+	kMountPointClear = 1 << 2,
+	kGettingOnOffMount = 1 << 3,
+	kInRandomScene = 1 << 4,
+	kNoBleedoutRecovery = 1 << 5,
+	kInBleedoutAnimation = 1 << 6,
+	kCanDoFavor = 1 << 7,
+	kShouldAnimGraphUpdate = 1 << 8,
+	kCanSpeakToEssentialDown = 1 << 9,
+	kBribedByPlayer = 1 << 10,
+	kAngryWithPlayer = 1 << 11,
+	kIsTrespassing = 1 << 12,
+	kCanSpeak = 1 << 13,
+	kIsInKillMove = 1 << 14,
+	kAttackOnSight = 1 << 15,
+	kIsCommandedActor = 1 << 16,
+	kForceOneAnimgraphUpdate = 1 << 17,
+	kEssential = 1 << 18,
+	kProtected = 1 << 19,
+	kAttackingDisabled = 1 << 20,
+	kCastingDisabled = 1 << 21,
+	kSceneHeadTrackRotation = 1 << 22,
+	kForceIncMinBoneUpdate = 1 << 23,
+	kCrimeSearch = 1 << 24,
+	kMovingIntoLoadedArea = 1 << 25,
+	kDoNotShowOnStealthMeter = 1 << 26,
+	kMovementBlocked = 1 << 27,
+	kAllowInstantFurniturePopInPlayerCell = 1 << 28,
+	kForceAnimGraphUpdate = 1 << 29,
+	kCheckAddEffectDualCast = 1 << 30,
+	kUnderwater = (UInt32)1 << 31
+};

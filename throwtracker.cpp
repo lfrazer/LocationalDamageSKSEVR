@@ -17,16 +17,30 @@ void CThrowTracker::Initialize()
 		{
 			if (modInfo->modIndex > 0 && modInfo->modIndex != 0xFF) //If plugin is in the load order.
 			{
-
 				// load FULL projectile form IDs from mod index
-				mRightProjectileFullFormId = (modInfo->modIndex << 24) | (kRightProjectileFormId & 0x00FFFFFF);
-				mLeftProjectileFullFormId = (modInfo->modIndex << 24) | (kLeftProjectileFormId & 0x00FFFFFF);
+				mRightProjectileDaggerFullFormId = (modInfo->modIndex << 24) | (kRightProjectileDaggerFormId & 0x00FFFFFF);
+				mLeftProjectileDaggerFullFormId = (modInfo->modIndex << 24) | (kLeftProjectileDaggerFormId & 0x00FFFFFF);
+
+				mRightProjectileAxeFullFormId = (modInfo->modIndex << 24) | (kRightProjectileAxeFormId & 0x00FFFFFF);
+				mLeftProjectileAxeFullFormId = (modInfo->modIndex << 24) | (kLeftProjectileAxeFormId & 0x00FFFFFF);
+
+				mRightProjectileSwordFullFormId = (modInfo->modIndex << 24) | (kRightProjectileSwordFormId & 0x00FFFFFF);
+				mLeftProjectileSwordFullFormId = (modInfo->modIndex << 24) | (kLeftProjectileSwordFormId & 0x00FFFFFF);
+
+				mRightProjectile2HSwordFullFormId = (modInfo->modIndex << 24) | (kRightProjectile2HSwordFormId & 0x00FFFFFF);
+				mLeftProjectile2HSwordFullFormId = (modInfo->modIndex << 24) | (kLeftProjectile2HSwordFormId & 0x00FFFFFF);
+
+				mRightProjectile2HAxeFullFormId = (modInfo->modIndex << 24) | (kRightProjectile2HAxeFormId & 0x00FFFFFF);
+				mLeftProjectile2HAxeFullFormId = (modInfo->modIndex << 24) | (kLeftProjectile2HAxeFormId & 0x00FFFFFF);
+
+				mRightProjectileShieldFullFormId = (modInfo->modIndex << 24) | (kRightProjectileShieldFormId & 0x00FFFFFF);
+				mLeftProjectileShieldFullFormId = (modInfo->modIndex << 24) | (kLeftProjectileShieldFormId & 0x00FFFFFF);
 
 				mRightBoundProjectileFullFormId = (modInfo->modIndex << 24) | (kRightBoundProjectileFormId & 0x00FFFFFF);
 				mLeftBoundProjectileFullFormId = (modInfo->modIndex << 24) | (kLeftBoundProjectileFormId & 0x00FFFFFF);
 
 				const UInt32 rightWeaponBowFullFormId = (modInfo->modIndex << 24) | (kRightFakeBowFormId & 0x00FFFFFF);
-				const UInt32 leftWeaponBowFullFormId = (modInfo->modIndex << 24) | (mLeftFakeBowFormId & 0x00FFFFFF);
+				const UInt32 leftWeaponBowFullFormId = (modInfo->modIndex << 24) | (kLeftFakeBowFormId & 0x00FFFFFF);
 
 				TESForm* form = nullptr;
 				if (rightWeaponBowFullFormId > 0)
@@ -68,14 +82,13 @@ bool CThrowTracker::IsThrownLeftHandProjectile(Projectile* projectile) const
 {
 	if (projectile->baseForm)
 	{
-		if (projectile->baseForm->formID == mLeftProjectileFullFormId)
-		{
-			return true;
-		}
-		else if (projectile->baseForm->formID == mLeftBoundProjectileFullFormId)
-		{
-			return true;
-		}
+		return projectile->baseForm->formID == mLeftProjectileDaggerFullFormId
+			|| projectile->baseForm->formID == mLeftProjectileAxeFullFormId
+			|| projectile->baseForm->formID == mLeftProjectileSwordFullFormId
+			|| projectile->baseForm->formID == mLeftProjectile2HSwordFullFormId
+			|| projectile->baseForm->formID == mLeftProjectile2HAxeFullFormId
+			|| projectile->baseForm->formID == mLeftProjectileShieldFullFormId
+			|| projectile->baseForm->formID == mLeftBoundProjectileFullFormId;
 	}
 	
 	return false;
@@ -85,14 +98,13 @@ bool CThrowTracker::IsThrownRightHandProjectile(Projectile* projectile) const
 {
 	if (projectile->baseForm)
 	{
-		if (projectile->baseForm->formID == mRightProjectileFullFormId)
-		{
-			return true;
-		}
-		else if (projectile->baseForm->formID == mRightBoundProjectileFullFormId)
-		{
-			return true;
-		}
+		return projectile->baseForm->formID == mRightProjectileDaggerFullFormId
+			|| projectile->baseForm->formID == mRightProjectileAxeFullFormId
+			|| projectile->baseForm->formID == mRightProjectileSwordFullFormId
+			|| projectile->baseForm->formID == mRightProjectile2HSwordFullFormId
+			|| projectile->baseForm->formID == mRightProjectile2HAxeFullFormId
+			|| projectile->baseForm->formID == mRightProjectileShieldFullFormId
+			|| projectile->baseForm->formID == mRightBoundProjectileFullFormId;
 	}
 
 	return false;
