@@ -72,7 +72,7 @@ namespace Offset
 
 // 1.00	0.62	-------	00000001407CD9D0	sub_00000001407CD9D0	0000000140779010	ArrowProjectile_vf_sub_140779010	 	address sequence	1	1	1	2	2	2	0	0	0
 
-#define PROJECTILE_GETACTORCAUSEFN								0x007CD9D0 // ??_7Projectile@@6B@			vtbl[51]
+#define PROJECTILE_GETACTORCAUSEFN								0x0074DCF0 // ??_7Projectile@@6B@			vtbl[51]
 
 // 1.00	0.99	-------	000000014094A4C0	sub_000000014094A4C0	00000001409848B0	Actor__DamageActorValue_PSF	 	edges flowgraph MD index	12	12	12	68	68	68	16	16	16
 
@@ -305,8 +305,46 @@ enum class eActorValue : UInt32
 	kTotal
 };
 
+enum class eActorFlags : UInt32
+{
+	kNone = 0,
+	kDelayUpdateScenegraph = 1 << 0,
+	kProcessMe = 1 << 1,
+	kMurderAlarm = 1 << 2,
+	kHasSceneExtra = 1 << 3,
+	kHeadingFixed = 1 << 4,
+	kSpeakingDone = 1 << 5,
+	kIgnoreChangeAnimationCall = 1 << 6,
+	kSoundFileDone = 1 << 7,
+	kVoiceFileDone = 1 << 8,
+	kInTempChangeList = 1 << 9,
+	kDoNotRunSayToCallback = 1 << 10,
+	kDead = 1 << 11,
+	kForceGreetingPlayer = 1 << 12,
+	kForceUpdateQuestTarget = 1 << 13,
+	kSearchingInCombat = 1 << 14,
+	kAttackOnNextTheft = 1 << 15,
+	kEvpBuffered = 1 << 16,
+	kResetAI = 1 << 17,
+	kInWater = 1 << 18,
+	kSwimming = 1 << 19,
+	kVoicePausedByScript = 1 << 20,
+	kWasInFrustrum = 1 << 21,
+	kShouldRotateToTrack = 1 << 22,
+	kSetOnDeath = 1 << 23,
+	kDoNotPadVoice = 1 << 24,
+	kFootIKInRange = 1 << 25,
+	kPlayerTeammate = 1 << 26,
+	kGivePlayerXP = 1 << 27,
+	kSoundCallbackSuccess = 1 << 28,
+	kUseEmotion = 1 << 29,
+	kGuard = 1 << 30,
+	kParalyzed = (UInt32)1 << 31
+};
 
-enum eActorFlags
+
+
+enum eActorFlags2
 {
 	kNone = 0,
 	kScenePackage = 1 << 0,

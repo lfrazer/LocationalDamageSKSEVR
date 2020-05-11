@@ -334,7 +334,7 @@ extern "C" {
 
 		// populate info structure
 		info->infoVersion = PluginInfo::kInfoVersion;
-		info->version = 65;
+		info->version = 0x70;
 
 		g_pluginHandle = skse->GetPluginHandle();
 
@@ -540,6 +540,11 @@ static float GetLocationalDamage(Actor* actor, BGSAttackData* attackData, TESObj
 	float damage = 0.0f;
 	bool isSpell = false;
 
+	if (ini.DamageFollowers == false && (actor->flags1 & (UInt32)eActorFlags::kPlayerTeammate))
+	{
+		return 0.0f;
+	}
+
 	// add skill based damage to weapon bonus dmg (I'm pretty sure at least)
 	auto AddWeaponSkillDamage = [&](UInt8 weaponType)
 	{
@@ -691,7 +696,7 @@ static float GetLocationalEffectChance(Actor* actor, BGSAttackData* attackData, 
 	return chance;
 }
 
-static void ApplyLocationalDamage(Actor* actor, UInt32 damageType, float dmg, Actor* akAggressor)
+static void ApplyLocationalDamage(Actor* actor, UInt32 damageType, float dmg, Actor* akAggressor, Projectile* proj)
 {
 	if (dmg >= 0.0f || actor == nullptr)
 		return;
@@ -713,9 +718,25 @@ static void ApplyLocationalDamage(Actor* actor, UInt32 damageType, float dmg, Ac
 			return;
 		}
 
-		if ((actor->flags2 & eActorFlags::kEssential) != 0 && (actor->flags2 & eActorFlags::kProtected) != 0) // essential actor
+		if ((actor->flags2 & eActorFlags2::kEssential) != 0 && (actor->flags2 & eActorFlags2::kProtected) != 0) // essential actor
 		{
 			return;
+		}
+
+		// check random chance of decapitation
+		if (proj->formType == kFormType_Arrow) // for all weapons (this includes thrown weapons)
+		{
+			if (ini.WeaponDecapitationChance < 100 && (ini.WeaponDecapitationChance <= 0 || (rand() % 100) < ini.WeaponDecapitationChance))
+			{
+				return;
+			}
+		}
+		else // for spells
+		{
+			if (ini.SpellDecapitationChance < 100 && (ini.SpellDecapitationChance <= 0 || (rand() % 100) < ini.SpellDecapitationChance))
+			{
+				return;
+			}
 		}
 
 		_MESSAGE("Trying to decapitate actor %s with health %f", GetActorName(actor), hp);
@@ -1042,7 +1063,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 						if (ini.DamageTypeHead != 0)
 						{
 							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, spell, projectile, caster_actor, equipArmor.pArmor, Type_HeadDamageMultiplier, dmgEntry);
-							ApplyLocationalDamage(actor, ini.DamageTypeHead, locationalDmgVal, caster_actor);
+							ApplyLocationalDamage(actor, ini.DamageTypeHead, locationalDmgVal, caster_actor, projectile);
 						}
 
 						DoNotificationConditional(ini.HeadMessageFront.c_str(), ini.HeadMessageBack.c_str(), locationalDmgVal);
@@ -1061,7 +1082,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 						if (ini.DamageTypeFoot != 0)
 						{
 							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, spell, projectile, caster_actor, equipArmor.pArmor, Type_FootDamageMultiplier, dmgEntry);
-							ApplyLocationalDamage(actor, ini.DamageTypeFoot, locationalDmgVal, caster_actor);
+							ApplyLocationalDamage(actor, ini.DamageTypeFoot, locationalDmgVal, caster_actor, projectile);
 						}
 
 						DoNotificationConditional(ini.FootMessageFront.c_str(), ini.FootMessageBack.c_str(), locationalDmgVal);
@@ -1080,7 +1101,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 						if (ini.DamageTypeArms != 0)
 						{
 							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, spell, projectile, caster_actor, equipArmor.pArmor, Type_ArmsDamageMultiplier, dmgEntry);
-							ApplyLocationalDamage(actor, ini.DamageTypeArms, locationalDmgVal, caster_actor);
+							ApplyLocationalDamage(actor, ini.DamageTypeArms, locationalDmgVal, caster_actor, projectile);
 						}
 
 						DoNotificationConditional(ini.ArmsMessageFront.c_str(), ini.ArmsMessageBack.c_str(), locationalDmgVal);
@@ -1098,7 +1119,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 						if (ini.DamageTypeHeart != 0)
 						{
 							locationalDmgVal = GetLocationalDamage(actor, attackData, weapon, spell, projectile, caster_actor, equipArmor.pArmor, Type_HeartDamageMultiplier, dmgEntry);
-							ApplyLocationalDamage(actor, ini.DamageTypeHeart, locationalDmgVal, caster_actor);
+							ApplyLocationalDamage(actor, ini.DamageTypeHeart, locationalDmgVal, caster_actor, projectile);
 						}
 						
 						DoNotificationConditional(ini.HeartMessageFront.c_str(), ini.HeartMessageBack.c_str(), locationalDmgVal);

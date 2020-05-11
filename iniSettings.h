@@ -51,6 +51,7 @@ public:
 	UInt32 SoundEffectSpellFormID = DEFAULT_SOUNDEFFECT_SPELL_FORMID;
 	UInt32 ImpactEffectFormID = 0; // will be set in constructor based on mod index
 
+	
 	bool DisplayImpactEffect = true;
 	bool DisplayNotification = true;
 	bool LogNotification = false;
@@ -58,6 +59,10 @@ public:
 	bool PlaySoundAtEnemyLocation = false;
 	int DisplayNotificationMinDamage = 1;
 	int UseSKSETrampolineInterface = 1;
+
+	bool DamageFollowers = false;
+	UInt32 WeaponDecapitationChance = 100;
+	UInt32 SpellDecapitationChance = 100;
 
 	std::string HeadMessageFront;
 	std::string HeadMessageBack;

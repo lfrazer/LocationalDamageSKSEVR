@@ -349,7 +349,7 @@ void INIFile::SetINIData(std::vector<std::string> *list)
 			{
 				double value = std::atof(vec.at(1).c_str());
 				SpellTimeout = value / 1000.0; // spell timeout INI setting in miliseconds - convert to seconds on read in
-				GeneralMap.at("SpellTimeout") = (UInt32)value; 
+				GeneralMap.at("SpellTimeout") = (UInt32)value;
 			}
 			else if (key == "ImpactEffectFormID")
 			{
@@ -362,6 +362,26 @@ void INIFile::SetINIData(std::vector<std::string> *list)
 			else if (key == "SoundEffectSpellFormID")
 			{
 				this->SoundEffectSpellFormID = std::strtoul(vec.at(1).c_str(), 0, 16);
+			}
+			else if (key == "DamageFollowers")
+			{
+				std::string value = vec.at(1);
+				if (value == "true")
+				{
+					this->DamageFollowers = true;
+				}
+				else
+				{
+					this->DamageFollowers = false;
+				}
+			}
+			else if (key == "WeaponDecapitationChance")
+			{
+				this->WeaponDecapitationChance = atoi(vec.at(1).c_str());
+			}
+			else if (key == "SpellDecapitationChance")
+			{
+				this->SpellDecapitationChance = atoi(vec.at(1).c_str());
 			}
 			else
 			{
