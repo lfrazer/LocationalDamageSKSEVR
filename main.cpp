@@ -324,17 +324,17 @@ extern "C" {
 		gLog.SetPrintLevel(IDebugLog::kLevel_Error);
 		gLog.SetLogLevel(IDebugLog::kLevel_DebugMessage);
 
-#ifdef SKYRIMVR
-		_MESSAGE("LocationalDamageSKSEVR Plugin");
-		info->name = "LocationalDamageSKSEVR Plugin";
-#else
-		_MESSAGE("LocationalDamageSKSE64 Plugin");
-		info->name = "LocationalDamageSKSE64 Plugin";
-#endif
-
 		// populate info structure
 		info->infoVersion = PluginInfo::kInfoVersion;
-		info->version = 0x70;
+		info->version = 0x71;
+
+#ifdef SKYRIMVR
+		_MESSAGE("LocationalDamageSKSEVR Plugin Version %x", info->version);
+		info->name = "LocationalDamageSKSEVR Plugin";
+#else
+		info->name = "LocationalDamageSKSE64 Plugin;
+		_MESSAGE("LocationalDamageSKSE64 Plugin Version %x", info->version);
+#endif
 
 		g_pluginHandle = skse->GetPluginHandle();
 

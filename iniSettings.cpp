@@ -13,6 +13,8 @@
 
 #include <skse64/GameData.h>
 
+// Not a huge fan of the INI config code I inherited here, but it gets the job done with a lot of extra boilerplate..
+
 INIFile ini;
 
 INIFile::INIFile() : EnableHead(true), EnableArms(true), EnableFoot(true), EnableHeart(true), DamageTypeHead(1), DamageTypeArms(2), DamageTypeFoot(4), DamageTypeHeart(1), EffectTypeHead(0),
@@ -43,6 +45,13 @@ LightArmorEffectChanceMultiplier(0.6)
 
 	GeneralMap["SpellDamageMultiplier"] = 1;
 	GeneralMap["SpellTimeout"] = 1000;
+
+	GeneralMap["ImpactEffectFormID"] = DEFAULT_IMPACTEFFECT_FORMID;
+	GeneralMap["SoundEffectFormID"] = DEFAULT_SOUNDEFFECT_FORMID;
+	GeneralMap["SoundEffectSpellFormID"] = DEFAULT_SOUNDEFFECT_SPELL_FORMID;
+	GeneralMap["DamageFollowers"] = 0;
+	GeneralMap["WeaponDecapitationChance"] = 100;
+	GeneralMap["SpellDecapitationChance"] = 100;
 
 	MessageMap["HeadMessageFront"] = "Head: ";
 	MessageMap["HeadMessageBack"] = "";
@@ -353,15 +362,18 @@ void INIFile::SetINIData(std::vector<std::string> *list)
 			}
 			else if (key == "ImpactEffectFormID")
 			{
-				this->ImpactEffectFormID = std::strtoul(vec.at(1).c_str(), 0, 16);
+				ImpactEffectFormID = std::strtoul(vec.at(1).c_str(), 0, 16);
+				GeneralMap.at("ImpactEffectFormID") = ImpactEffectFormID;
 			}
 			else if (key == "SoundEffectFormID")
 			{
-				this->SoundEffectFormID = std::strtoul(vec.at(1).c_str(), 0, 16);
+				SoundEffectFormID = std::strtoul(vec.at(1).c_str(), 0, 16);
+				GeneralMap.at("SoundEffectFormID") = SoundEffectFormID;
 			}
 			else if (key == "SoundEffectSpellFormID")
 			{
-				this->SoundEffectSpellFormID = std::strtoul(vec.at(1).c_str(), 0, 16);
+				SoundEffectSpellFormID = std::strtoul(vec.at(1).c_str(), 0, 16);
+				GeneralMap.at("SoundEffectSpellFormID") = SoundEffectSpellFormID;
 			}
 			else if (key == "DamageFollowers")
 			{
@@ -369,19 +381,23 @@ void INIFile::SetINIData(std::vector<std::string> *list)
 				if (value == "true")
 				{
 					this->DamageFollowers = true;
+					GeneralMap.at("DamageFollowers") = 1;
 				}
 				else
 				{
 					this->DamageFollowers = false;
+					GeneralMap.at("DamageFollowers") = 0;
 				}
 			}
 			else if (key == "WeaponDecapitationChance")
 			{
 				this->WeaponDecapitationChance = atoi(vec.at(1).c_str());
+				GeneralMap.at("WeaponDecapitationChance") = WeaponDecapitationChance;
 			}
 			else if (key == "SpellDecapitationChance")
 			{
 				this->SpellDecapitationChance = atoi(vec.at(1).c_str());
+				GeneralMap.at("SpellDecapitationChance") = SpellDecapitationChance;
 			}
 			else
 			{
