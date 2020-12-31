@@ -391,7 +391,7 @@ extern "C" {
 	}
 };
 
-
+// Mappings of mesh physics assets to collision shapes
 typedef std::pair<BSFixedString, UInt32> Pair;
 std::unordered_map<std::string, std::vector<Pair>> locationalNodeMap = {
 	{ "actors\\character\\defaultmale.hkx",{ { "NPC Head [Head]", 20 },{ "NPC R Calf [RClf]", 20 },{ "NPC L Calf [LClf]", 20 },{ "NPC R Forearm [RLar]", 20 },{ "NPC L Forearm [LLar]", 20 },{ "NPC Spine2 [Spn2]", 20 } } },
@@ -713,12 +713,13 @@ static void ApplyLocationalDamage(Actor* actor, UInt32 damageType, float dmg, Ac
 			return name != nullptr ? name : "NULL";
 		};
 
+		// avoid decapitations for all children / essential / protected actors
 		if ((actor->race->data.raceFlags & TESRace::kRace_Child))
 		{
 			return;
 		}
 
-		if ((actor->flags2 & eActorFlags2::kEssential) != 0 && (actor->flags2 & eActorFlags2::kProtected) != 0) // essential actor
+		if ((actor->flags2 & eActorFlags2::kEssential) != 0 || (actor->flags2 & eActorFlags2::kProtected) != 0) // essential or protected actor
 		{
 			return;
 		}
@@ -867,6 +868,7 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 		if (nodeNames.empty())
 			return OnProjectileHitFunction(akProjectile, akTarget, point, unk1, unk2, unk3);
 
+		// Original code from Skyrim LE referencing stack commented for reference
 		BGSAttackData* attackData = nullptr;  //(BGSAttackData*)((UInt32*)stack[9])[9];
 		TESObjectWEAP* weapon = nullptr; //(TESObjectWEAP*)((UInt32*)stack[9])[10];
 		Projectile* projectile = akProjectile; //(Projectile*)((UInt32*)stack[9])[32];
@@ -1263,9 +1265,7 @@ void TaskPlayImpactVFX::Run()
 		BGSImpactDataSet* impactData = DYNAMIC_CAST(impactForm, TESForm, BGSImpactDataSet);
 
 		if (impactData)
-		{
-			// bool success = papyrusObjRef::PlayImpactEffect((*g_skyrimVM)->GetClassRegistry(), 0, mActor, impactData, mNodeName.c_str(), 0.0f, 0.0f, -1.0f, 512.0f, true, false);
-			
+		{	
 			// thanks to shizof for fixed version that always plays at head
 			bool success = papyrusObjRef::PlayImpactEffect((*g_skyrimVM)->GetClassRegistry(), 0, mActor, impactData, mNodeName.c_str(), 0.0f, 0.0f, 0.0f, 1.0f, false, false);
 
