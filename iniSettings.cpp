@@ -588,7 +588,14 @@ void INIFile::ShowSettings()
 	_MESSAGE("General");
 	for (auto& map : GeneralMap)
 	{
-		_MESSAGE("   %s  =  %d", (map.first).c_str(), map.second);
+		if (strstr(map.first.c_str(), "FormID") != nullptr)
+		{
+			_MESSAGE("   %s  =  0x%X", (map.first).c_str(), map.second);
+		}
+		else
+		{
+			_MESSAGE("   %s  =  %d", (map.first).c_str(), map.second);
+		}
 	}
 
 	for (auto& map : MessageMap)
