@@ -805,16 +805,14 @@ static void ApplyLocationalEffect(Actor* actor, UInt32 effectType, float chance,
 int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* akTarget, NiPoint3* point, UInt32 unk1,
 	UInt32 unk2, UInt8 unk3)
 {
-	if (akProjectile != nullptr && akTarget != nullptr) //&& akProjectile->formType == kFormType_Arrow)
+	if (akProjectile != nullptr && akTarget != nullptr)
 	{
-
-
 		NiPoint3* hit_pos = point;
 		TESObjectREFR* target = akTarget; //(TESObjectREFR*)stack[10];
 
 		Actor* actor = DYNAMIC_CAST(target, TESObjectREFR, Actor);
 
-		if (!actor) //|| actor->IsDead(true)) //|| actor->IsInKillMove())
+		if (!actor)
 			return OnProjectileHitFunction(akProjectile, akTarget, point, unk1, unk2, unk3);
 
 		// additional checks.  IsDead should be fixed now in new SKSE. Not sure about IsInKillMove
@@ -878,8 +876,8 @@ int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* a
 
 		int hitNode = -1;
 		BSFixedString hitNodeName;
-		float scale = CALL_MEMBER_FN(actor, GetBaseScale)(); //actor->GetScale();
-		for (int i = 0; i < nodeNames.size(); i++)
+		const float scale = CALL_MEMBER_FN(actor, GetBaseScale)(); //actor->GetScale();
+		for (size_t i = 0; i < nodeNames.size(); i++)
 		{
 			const char* nodeNameKey = (const char*)nodeNames[i].first;
 			NiAVObject *obj = node->GetObjectByName(&nodeNameKey);  // arg type of this changed... is it safe?
