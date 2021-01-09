@@ -332,7 +332,7 @@ extern "C" {
 		_MESSAGE("LocationalDamageSKSEVR Plugin Version %x", info->version);
 		info->name = "LocationalDamageSKSEVR Plugin";
 #else
-		info->name = "LocationalDamageSKSE64 Plugin;
+		info->name = "LocationalDamageSKSE64 Plugin";
 		_MESSAGE("LocationalDamageSKSE64 Plugin Version %x", info->version);
 #endif
 
