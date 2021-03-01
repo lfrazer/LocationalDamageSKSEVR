@@ -1,5 +1,5 @@
 # LocationalDamageSKSEVR
-Locational Damage SKSE port to x64 for Skyrim SE/VR, including new enhancements such as spell headshots, beheading, Spellisphon+WeaponThrowVR support, and new FX.  
+Locational Damage SKSE port to x64 for Skyrim SE/VR, including new enhancements such as spell headshots, beheading, Spellsiphon+WeaponThrowVR support, and new FX.  
 
 # Credits
 Original mod for Skyrim LE: Locational Damage by Felisky.
