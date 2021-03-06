@@ -40,10 +40,6 @@
 #include "timer.h"
 #include "skse64/GameData.h"
 
-#ifdef SKYRIMVR
-//#include "RE/BSAudioManager.h"
-//#include "RE/SoundData.h"
-#endif
 
 
 namespace papyrusActor
@@ -1333,48 +1329,4 @@ void TaskPlaySound::Dispose()
 }
 
 
-// exclude sound code for now..
-#if 0 //SKYRIMVR
-void PlayTESSound(UInt32 formID)
-{
-
-	auto audioManager = RE::BSAudioManager::GetSingleton();
-	//auto player = RE::PlayerCharacter::GetSingleton();
-	auto player = DYNAMIC_CAST(LookupFormByID(0x14), TESForm, Actor);
-
-
-	TESForm* soundForm = LookupFormByID(formID);
-	if (!soundForm)
-	{
-		_MESSAGE("PlayTESSound(): Invalid Sound Form ID: 0x%x", formID);
-		return;
-	}
-
-	RE::BSISoundDescriptor* soundDescriptor = (RE::BSISoundDescriptor*)DYNAMIC_CAST(soundForm, TESForm, BGSSoundDescriptorForm);
-	if (soundDescriptor)
-	{
-
-		if (audioManager->Play(soundDescriptor)) // this will call soundData::Play but without setting position
-		{
-			return;
-		}
-
-		// pointer type conversion to force compatibiilty (memory layout should be the same)
-		/*
-		RE::SoundData soundData;
-		audioManager->BuildSoundDataFromDescriptor(soundData, soundDescriptor);
-
-		if (soundData.SetPosition(*(RE::NiPoint3*)&player->pos))
-		{
-			soundData.SetNode((RE::NiNode*)player->GetNiNode());
-			soundData.Play();
-			
-			return;
-		}
-		*/
-	}
-	_MESSAGE("PlayTESSound(): Could not play SoundData.");
-	
-}
-#endif
 
