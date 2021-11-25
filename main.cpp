@@ -75,7 +75,7 @@ namespace papyrusObjRef
 
 
 typedef int64_t(*_OnProjectileHitFunction)(Projectile* akProjectile, TESObjectREFR* akTarget, NiPoint3* point,
-	UInt32 unk1, UInt32 unk2, UInt8 unk3);
+	uintptr_t unk1, UInt32 unk2, UInt8 unk3);
 RelocAddr<_OnProjectileHitFunction> OnProjectileHitFunction(ONPROJECTILEHIT_INNERFUNCTION);
 RelocAddr<uintptr_t> OnProjectileHitHookLocation(ONPROJECTILEHIT_HOOKLOCATION);
 
@@ -110,7 +110,7 @@ int						g_IsLeftHandMode = 0;
 
 typedef SpellItem EquippedSpellObject;
 
-int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* akTarget, NiPoint3* point, UInt32 unk1,
+int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* akTarget, NiPoint3* point, uintptr_t unk1,
 	UInt32 unk2, UInt8 unk3);
 
 void OnVRButtonEvent(PapyrusVR::VREventType type, PapyrusVR::EVRButtonId buttonId, PapyrusVR::VRDevice deviceId);
@@ -125,10 +125,10 @@ struct DoAddHook_Code : Xbyak::CodeGenerator
 
 		//  .text:000000014074CFBA                 lea     r9, [r13 + 0Ch]; a4
 		lea(r9, ptr[r13 + 0x0C]);
-		// 	.text:000000014074CFBE                 mov[rsp + 180h + a6], 0; a6
-		mov(byte[rsp + 0x180 + 0x158], 0);
+		// 	.text:000000014074CFBE                 mov[rsp + 180h + a6], 0; a6  (WARNING NOTE: Stack Offsets changed to 0x28, 0x20 fix Impact VFX bug in VR but this may be totally wrong in SE!!)
+		mov(byte[rsp + 0x28], 0);
 		// 	.text:000000014074CFC3                 mov[rsp + 180h + a5], ecx; a5
-		mov(dword[rsp + 0x180 + 0x160], ecx);
+		mov(dword[rsp + 0x20], ecx);
 		// 	.text:000000014074CFC7                 mov     r8, r13; a3
 		mov(r8, r13);
 		// 	.text:000000014074CFCA                 mov     rdx, rbx; a2
@@ -322,7 +322,7 @@ extern "C" {
 
 		// populate info structure
 		info->infoVersion = PluginInfo::kInfoVersion;
-		info->version = 0x71;
+		info->version = 0x72;
 
 #ifdef SKYRIMVR
 		_MESSAGE("LocationalDamageSKSEVR Plugin Version %x", info->version);
@@ -798,7 +798,7 @@ static void ApplyLocationalEffect(Actor* actor, UInt32 effectType, float chance,
 }
 
 
-int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* akTarget, NiPoint3* point, UInt32 unk1,
+int64_t OnProjectileHitFunctionHooked(Projectile* akProjectile, TESObjectREFR* akTarget, NiPoint3* point, uintptr_t unk1,
 	UInt32 unk2, UInt8 unk3)
 {
 	if (akProjectile != nullptr && akTarget != nullptr)
